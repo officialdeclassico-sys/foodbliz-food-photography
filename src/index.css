@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+:root {
+  --ticker-red: #d90429;
+  --border-width: 2px;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 42s linear infinite;
+}
+
+.ticker-container:hover .marquee-track,
+.ticker-container.is-paused .marquee-track {
+  animation-play-state: paused;
+}
+
+.ticker-border {
+  border: var(--border-width) solid var(--ticker-red);
+}
+
+.bg-ticker-red {
+  background-color: var(--ticker-red);
+}
+
+.item-divider {
+  border-right: 1px solid #e5e7eb;
+}
+
+/* Custom scrollbar hide */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (max-width: 768px) {
+  .hero-category-nav-wrap {
+    justify-content: flex-start !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .hero-category-nav-wrap::-webkit-scrollbar {
+    display: none !important;
+  }
+  .dish-card {
+    padding: 0.625rem !important;
+    justify-content: flex-start !important;
+  }
+  .dish-card h3 {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    margin-bottom: 7px !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .dish-card .dish-buttons-wrap {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  .dish-card .dish-more-info-btn,
+  .dish-card .dish-add-to-cart-btn {
+    font-size: 9.5px !important;
+    padding: 4px 4px !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #cuisine-scroll-container {
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  #cuisine-scroll-container .cuisine-card {
+    flex-shrink: 0 !important;
+    width: 130px !important;
+  }
+  #cuisine-scroll-container .cuisine-card img {
+    width: 130px !important;
+    height: 95px !important;
+  }
+}

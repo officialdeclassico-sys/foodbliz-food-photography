@@ -1,0 +1,6 @@
+{
+  "name": "Foodbliz - Professional Food Photography & Dishes",
+  "description": "High-quality food photos for restaurants, menus, delivery apps and social media.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
