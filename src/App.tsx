@@ -187,7 +187,7 @@ const CUISINES_ROW_2 = [
   { name: 'Momos', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwr47h35tNgGquncZTntEzqeG3AbU-JmHCmGrj6Lq17-Co73C0A6-mvJZgQmqUaOIUe-sau5--qt6-dksLCL5isOt1E3Jef9Ihln8Iq8ijfz6efV7ZDgcSzVJp3zbHv1JtXi2J3seYUEfz5El-rIzWprPyqs8-WaR-JlwZMeTtJra_b-G7E3eD23KqgH9MqEMrRXTM5udfc5_50R6N2jRG-3aZw5q3AwNYsV70Kq4FBGPRXgM_jrqqXI65tX835jDb4g' },
   { name: 'Roti', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuASlrY6kKPdFj_BPBgkX0g053fR_ljgzmc1xnHdk5Zq2ijdyGU-W6vJnLmD-b-SUsmK2VgcgW-mmKsVtZhso-68ZeLFYPR5JhrHH_LOtYU60VNpPRDWpyPtIExfwvDhF1M_cF-zRYF7tKPe3ZCtM46nlOapyXc9wd-U340Sm2GMYAk7P2uHD8rABni2X98c7ohIfDAKMyfqO6OOES5STFrIn9NgKDNXGiT9k2rfAteJEuQiL8CakU6BqJ43Lk4Of02P4g' },
   { name: 'Sandwich', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7ky6FPOx0hROm22znxOscktZjAhWYgW4331KUKjqNbZmdWxwiPAiRlgKN1G58FpnKoSttVooZuH4AJF22QYFItfSGQOtpKs8rae9I52HZsRsXEQxEe8WAalrjT0_QyEMbJ_nOksmvp6d2YFdoTfZa3anbeddeRtLqbgDZ5bd1fxybp2gzpbSgk0R8AzTdptk4H55hCK87DQmCKzqwKX7ezCVaVID5NNQmw5SFGmVgaflxlv5zbGxMGNsrbdEeRSpuiQ' },
-  { name: 'Beverages', img: '/assets/aistudio/Beverages_5df70cc7.png' }
+  { name: 'Beverages', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCT3XQjszc8I6nO9wCY7pJ_zbzLYsH1Bqcpeibh9EKZsEh07RN5tSRglrXcmck--RqpgRd_l9wbQWE9iUTA6iLF240C_iW_KRwB3AzoRxSGpdZzPqPS7t4Tz0SXdFVVqMCeSl6yjwXYq2jm-Sz7Ibad-2XEvOT7gKqnf2HcDrgiwYq0rrdw67C0PvNBV_1j84pGexSwOXOLNbpmV3dA01diq0B9uVv8GnhkiILjZlj2Fs-UZCtbtzs47cidF-KBY1aPjQ' }
 ];
 
 const SEARCH_TERMS_ROW_1 = [
@@ -2200,25 +2200,43 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Trending Keywords Row - Positioned immediately below search bar with 2-3px gap */}
-                <div className="w-full mt-0.5 sm:mt-1 pl-2.5 xs:pl-4 md:pl-5 pr-[42px] xs:pr-[46px] sm:pr-12 md:pr-14 overflow-hidden">
-                  <div
-                    className="w-full flex flex-nowrap items-center gap-x-2 overflow-hidden whitespace-nowrap text-ellipsis"
-                    id="hero-trending-row"
-                  >
-                    <span className="font-bold text-gray-900 text-xs sm:text-[13px] leading-normal shrink-0 select-none mr-1">
-                      Trending:
-                    </span>
-                    {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian'] as const).map((tag, idx, arr) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => handleTagClick(tag)}
-                        className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
-                      >
-                        {tag}{idx < arr.length - 1 ? ',' : ''}
-                      </button>
-                    ))}
+                {/* Trending Keywords Row - Continuous Auto-Scrolling Marquee directly below search bar */}
+                <div
+                  className="w-full mt-0.5 sm:mt-1 pl-2.5 xs:pl-4 md:pl-5 pr-[42px] xs:pr-[46px] sm:pr-12 md:pr-14 overflow-hidden relative flex items-center group cursor-default"
+                  id="hero-trending-row"
+                >
+                  <span className="font-bold text-gray-900 text-xs sm:text-[13px] leading-normal shrink-0 select-none mr-2 relative z-10">
+                    Trending:
+                  </span>
+                  <div className="overflow-hidden flex-1 min-w-0 relative">
+                    <div className="marquee-track items-center gap-x-3 py-0.5" style={{ animationDuration: '30s' }}>
+                      {/* Set 1 */}
+                      <div className="flex items-center gap-x-3 shrink-0">
+                        {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
+                          <button
+                            key={`1-${tag}`}
+                            type="button"
+                            onClick={() => handleTagClick(tag)}
+                            className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
+                          >
+                            {tag}{idx < arr.length - 1 ? ',' : ''}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Set 2 (duplicate for seamless loop) */}
+                      <div className="flex items-center gap-x-3 shrink-0 ml-3" aria-hidden="true">
+                        {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
+                          <button
+                            key={`2-${tag}`}
+                            type="button"
+                            onClick={() => handleTagClick(tag)}
+                            className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
+                          >
+                            {tag}{idx < arr.length - 1 ? ',' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -17,7 +17,8 @@
 }
 
 .ticker-container:hover .marquee-track,
-.ticker-container.is-paused .marquee-track {
+.ticker-container.is-paused .marquee-track,
+#hero-trending-row:hover .marquee-track {
   animation-play-state: paused;
 }
 
