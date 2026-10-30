@@ -28,8 +28,8 @@ interface FaqItem {
 
 const ALL_DISHES: Dish[] = [
   {
-    name: 'Chole Bhature',
-    price: 25,
+    name: 'Chicken Biryani',
+    price: 89,
     rating: '4.1',
     reviews: '676',
     isVeg: true,
@@ -38,8 +38,8 @@ const ALL_DISHES: Dish[] = [
     category: 'North Indian'
   },
   {
-    name: 'Dahi Papdi Chaat',
-    price: 25,
+    name: 'Gulab Jamun',
+    price: 49,
     rating: '4.2',
     reviews: '2.2K+',
     isVeg: true,
@@ -48,8 +48,8 @@ const ALL_DISHES: Dish[] = [
     category: 'Street Food'
   },
   {
-    name: 'Paneer Butter Masala',
-    price: 25,
+    name: 'Paneer Butter Masala Thali',
+    price: 99,
     rating: '4.3',
     reviews: '1.8K+',
     isVeg: true,
@@ -58,8 +58,8 @@ const ALL_DISHES: Dish[] = [
     category: 'North Indian'
   },
   {
-    name: 'Crispy Masala Dosa',
-    price: 25,
+    name: 'South Indian Thali',
+    price: 79,
     rating: '4.4',
     reviews: '3.1K+',
     isVeg: true,
@@ -69,7 +69,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Hakka Veg Noodles',
-    price: 25,
+    price: 59,
     rating: '4.2',
     reviews: '950',
     isVeg: true,
@@ -79,7 +79,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Gulab Jamun Platter',
-    price: 25,
+    price: 69,
     rating: '4.5',
     reviews: '1.4K+',
     isVeg: true,
@@ -89,7 +89,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Classic Veg Burger',
-    price: 25,
+    price: 35,
     rating: '4.1',
     reviews: '820',
     isVeg: true,
@@ -99,7 +99,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Farmhouse Pizza',
-    price: 25,
+    price: 95,
     rating: '4.3',
     reviews: '2.5K+',
     isVeg: true,
@@ -109,7 +109,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Kathi Paneer Roll',
-    price: 25,
+    price: 45,
     rating: '4.2',
     reviews: '1.1K+',
     isVeg: true,
@@ -119,7 +119,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Paneer Tikka Kebab',
-    price: 25,
+    price: 85,
     rating: '4.4',
     reviews: '1.9K+',
     isVeg: true,
@@ -129,7 +129,7 @@ const ALL_DISHES: Dish[] = [
   },
   {
     name: 'Steamed Veg Momos',
-    price: 25,
+    price: 39,
     rating: '4.3',
     reviews: '3.4K+',
     isVeg: true,
@@ -176,8 +176,7 @@ const CUISINES_ROW_1 = [
   { name: 'Desserts', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuASYniDhW358WFTMe05i1caGO5TsOhMzZRTa15mEMHs-sioqt2c6jliyQbn0mBV35dZy6FTt6XbPtE0uGyXSYLeMa3XIQXaLzLBRMaifgeW7nh-Y7GvX4ysYJKddlfKv48g-hU0JVD8w8KVVIu23d4CnKomwDefUg6FwMVfYqqAcPSvi71Xc2sR1ndIMbBf5Lhzr1BE0pPFR5M1CIfG_Nqh-D9EipvVH8NhdJ59Q0sbuBt1usExl2eJHmYSbENLukFFNw' },
   { name: 'Ice Cream', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBejJ2PeuOBxAXIT7KJWRB2GhZrcJGJwjQwfolR6P-ykVJVfcrcs1vK3jrfGIO0hQ6lQQARw9L5YodKu7piclL-Svw5LLGdkTZ_fBKnXIm_vzXSkWZ3NbI5yqRKGP8Vt81Jwl6H6FCRlpoq5r665N9fz7BgF3akNXTvF7i6IzJuFtzTTiaRjcpX7aZTV_islWM9spHZrYe4dr6SbeR8wmLn3dP29ZF6NXQ5xIdDqknGLK5wRd_qWyLzqJweKvwrd_j0_w' },
   { name: 'Pasta', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAjS56PiS63Wq1oZnwy7rnMqmhFBAXp90ugs9afQ0-k4Q02eFiqsHtbTmDd3LMAp9AR36bUm0CzUgTh_PO-BnY1VJhgfSfSV_4yBO7DXVE30S9MrW9xuMnkNdGW5WTB3wHLKGz86WpSyDcEbpTaBIrG6rK1uc3gzWdXPMG5KIlguwnlhyB4uMCMXyXnLXAO1JXUqGcKuxufnTTqImYMsRe4ds0071E0zwPg8SmxNlI9eHzGQaOGDZOobwXzxb9Ox_GRyg' },
-  { name: 'Street Food', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDPmQZe5lmXb1GeN15I-2nNRNvSxbB0aISxpAD28-fYtNnG-NbXXY0ClJt717B5ebM4oR9-t8saSzZ6El_okNxaQT3v_DAlJmKYkI3ioo2pq49wbHUB_oDXQUWoXwXyQEbSc5tQBsxlqzfTL09p33Pdl08FgBSaKXfMYokmylFgK2-N4od7xfse0hioBp6AtQ-UVmcgboXjtqiWpkfFMYJJiz7gWhZr0dyB0b_RQkcUGnRafd-mbbyV3-9f9rerEQF8dA' },
-  { name: 'Sandwich', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7ky6FPOx0hROm22znxOscktZjAhWYgW4331KUKjqNbZmdWxwiPAiRlgKN1G58FpnKoSttVooZuH4AJF22QYFItfSGQOtpKs8rae9I52HZsRsXEQxEe8WAalrjT0_QyEMbJ_nOksmvp6d2YFdoTfZa3anbeddeRtLqbgDZ5bd1fxybp2gzpbSgk0R8AzTdptk4H55hCK87DQmCKzqwKX7ezCVaVID5NNQmw5SFGmVgaflxlv5zbGxMGNsrbdEeRSpuiQ' }
+  { name: 'Street Food', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDPmQZe5lmXb1GeN15I-2nNRNvSxbB0aISxpAD28-fYtNnG-NbXXY0ClJt717B5ebM4oR9-t8saSzZ6El_okNxaQT3v_DAlJmKYkI3ioo2pq49wbHUB_oDXQUWoXwXyQEbSc5tQBsxlqzfTL09p33Pdl08FgBSaKXfMYokmylFgK2-N4od7xfse0hioBp6AtQ-UVmcgboXjtqiWpkfFMYJJiz7gWhZr0dyB0b_RQkcUGnRafd-mbbyV3-9f9rerEQF8dA' }
 ];
 
 const CUISINES_ROW_2 = [
@@ -186,7 +185,9 @@ const CUISINES_ROW_2 = [
   { name: 'Rolls', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCKJZNc9305vbuaEC5s0dVESSnK8hry-ccpWbpLNmLtDzQHA9QMJP0-OiA9DvOVtqfteuhTAs18Ti4z_DTkOYeZSFxCcllUJHRR5L4eY9nm42YYD-zLAc4gp9kA-5-IH9YvUhro8FNz7Vs5yD4WDMkZ6x8n91Ed8wX7RXMb8qzu641WWEkCbSi3Fv27kBLUJdvOgWUqgfZ-gxWTNX62hrQeYm-Xfy-BOJ7afM4SLqSkzFEtaLl4tBo7eds41DGHyzhBwQ' },
   { name: 'Kebabs', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABojMXt9-VMXJx-QHppoH1glJFddfnDE7cBlgM5ywScp8aGt8jVX8O1rgyaYGFgL2NMtlmsr3YGhbI-J3VW8K1pqIJp7OLuiLmvIB39y5I2dEyqMhQIMkhk-N-B0414tHudJdAPoinwcJTMrcZ2uFnb6z2qJM150-_kNL0vN5Na-NXA-g-qr370NJmchVDRBaBX3NesD-r9FfPQVQs_dEqYb9MromLW8ujfibOxDZ_Gcn57ShqtnSD_q-3CxK_Q_MV0w' },
   { name: 'Momos', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwr47h35tNgGquncZTntEzqeG3AbU-JmHCmGrj6Lq17-Co73C0A6-mvJZgQmqUaOIUe-sau5--qt6-dksLCL5isOt1E3Jef9Ihln8Iq8ijfz6efV7ZDgcSzVJp3zbHv1JtXi2J3seYUEfz5El-rIzWprPyqs8-WaR-JlwZMeTtJra_b-G7E3eD23KqgH9MqEMrRXTM5udfc5_50R6N2jRG-3aZw5q3AwNYsV70Kq4FBGPRXgM_jrqqXI65tX835jDb4g' },
-  { name: 'Roti', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuASlrY6kKPdFj_BPBgkX0g053fR_ljgzmc1xnHdk5Zq2ijdyGU-W6vJnLmD-b-SUsmK2VgcgW-mmKsVtZhso-68ZeLFYPR5JhrHH_LOtYU60VNpPRDWpyPtIExfwvDhF1M_cF-zRYF7tKPe3ZCtM46nlOapyXc9wd-U340Sm2GMYAk7P2uHD8rABni2X98c7ohIfDAKMyfqO6OOES5STFrIn9NgKDNXGiT9k2rfAteJEuQiL8CakU6BqJ43Lk4Of02P4g' }
+  { name: 'Roti', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuASlrY6kKPdFj_BPBgkX0g053fR_ljgzmc1xnHdk5Zq2ijdyGU-W6vJnLmD-b-SUsmK2VgcgW-mmKsVtZhso-68ZeLFYPR5JhrHH_LOtYU60VNpPRDWpyPtIExfwvDhF1M_cF-zRYF7tKPe3ZCtM46nlOapyXc9wd-U340Sm2GMYAk7P2uHD8rABni2X98c7ohIfDAKMyfqO6OOES5STFrIn9NgKDNXGiT9k2rfAteJEuQiL8CakU6BqJ43Lk4Of02P4g' },
+  { name: 'Sandwich', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7ky6FPOx0hROm22znxOscktZjAhWYgW4331KUKjqNbZmdWxwiPAiRlgKN1G58FpnKoSttVooZuH4AJF22QYFItfSGQOtpKs8rae9I52HZsRsXEQxEe8WAalrjT0_QyEMbJ_nOksmvp6d2YFdoTfZa3anbeddeRtLqbgDZ5bd1fxybp2gzpbSgk0R8AzTdptk4H55hCK87DQmCKzqwKX7ezCVaVID5NNQmw5SFGmVgaflxlv5zbGxMGNsrbdEeRSpuiQ' },
+  { name: 'Beverages', img: '/assets/aistudio/Beverages_5df70cc7.png' }
 ];
 
 const SEARCH_TERMS_ROW_1 = [
@@ -1293,23 +1294,24 @@ export default function App() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF9T6i3uYGaVX2uSUU5cz1-iawLSqBVCA1Ysqzi0pZP_KS6JMQbKdYMBVMOFlKaxqc24cQsBBBrPl6d6wFTXgLhQUlBpDf03eIEdfbBvgpsAeeYl0-VUzx9JpV3T52m040DwHMp9UO8_yiCm2Bu8lIRcT_vJxW_YVe8P9INm5iXDCb7pF8ZVWMTMJg_Nc378TSs_7C3_FLE2iAFq_vwCO4wgUdCfOBxb-YSACmLrCxbTWIn-wQny3up3w_DLkmNorGMw"
               />
             </a>
-            <nav className="block">
-              <ul className="flex items-center justify-center gap-7 sm:gap-8 text-[15px] font-bold text-white tracking-normal">
+            <nav className="block mt-1">
+              <ul className="flex items-center justify-center gap-8 sm:gap-10 text-[14.5px] sm:text-[15px] font-semibold text-white tracking-normal">
                 <li>
                   <a
-                    className={`transition-colors cursor-pointer ${currentRoute === 'home' ? 'text-red-500 font-extrabold' : 'hover:text-red-500'}`}
+                    className={`flex items-center gap-2 transition-colors cursor-pointer ${currentRoute === 'home' ? 'text-red-500 font-bold' : 'hover:text-red-500'}`}
                     href="#home"
                     onClick={() => {
                       setCurrentRoute('home');
                       scrollToTop();
                     }}
                   >
-                    Home
+                    <svg className="w-[17px] h-[17px] stroke-current fill-none shrink-0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span>Home</span>
                   </a>
                 </li>
                 <li>
                   <a
-                    className={`transition-colors cursor-pointer ${currentRoute === 'about' ? 'text-red-500 font-extrabold' : 'hover:text-red-500'}`}
+                    className={`flex items-center gap-2 transition-colors cursor-pointer ${currentRoute === 'about' ? 'text-red-500 font-bold' : 'hover:text-red-500'}`}
                     href="#about"
                     onClick={(e) => {
                       e.preventDefault();
@@ -1318,37 +1320,41 @@ export default function App() {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    About Us
+                    <svg className="w-[17px] h-[17px] stroke-current fill-none shrink-0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>About Us</span>
                   </a>
                 </li>
                 <li>
                   <a
-                    className={`transition-colors cursor-pointer ${currentRoute === 'packages' ? 'text-red-500 font-extrabold' : 'hover:text-red-500'}`}
+                    className={`flex items-center gap-2 transition-colors cursor-pointer ${currentRoute === 'packages' ? 'text-red-500 font-bold' : 'hover:text-red-500'}`}
                     href="#packages"
                     onClick={() => {
                       setCurrentRoute('packages');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    Packages
+                    <svg className="w-[17px] h-[17px] stroke-current fill-none shrink-0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="16.5" x2="7.5" y1="9.4" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>
+                    <span>Packages</span>
                   </a>
                 </li>
                 <li>
                   <button
-                    className="hover:text-red-500 transition-colors font-bold cursor-pointer focus:outline-none"
+                    className="flex items-center gap-2 hover:text-red-500 transition-colors font-semibold cursor-pointer focus:outline-none"
                     type="button"
                     onClick={() => setContactModalOpen(true)}
                   >
-                    Contact Us
+                    <svg className="w-[17px] h-[17px] stroke-current fill-none shrink-0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>Contact Us</span>
                   </button>
                 </li>
                 <li>
                   <button
-                    className="hover:text-red-500 transition-colors font-bold cursor-pointer focus:outline-none"
+                    className="flex items-center gap-2 hover:text-red-500 transition-colors font-semibold cursor-pointer focus:outline-none"
                     type="button"
                     onClick={() => setFaqModalOpen(true)}
                   >
-                    Faqs
+                    <svg className="w-[17px] h-[17px] stroke-current fill-none shrink-0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    <span>Faqs</span>
                   </button>
                 </li>
               </ul>
@@ -2074,153 +2080,147 @@ export default function App() {
             </button>
           </div>
 
-          {/* Search Bar: Photos Box & Search Box EXACTLY the same height and alignment, scaled to max-w-4xl / xl:max-w-5xl on desktop */}
-          <div className="w-full flex items-center justify-center gap-1.5 xs:gap-2 md:gap-2.5 mx-auto max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl relative z-30" id="hero-search-container">
-            {/* Photos Selector Box */}
-            <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
-              <button
-                aria-expanded={mediaDropdownOpen}
-                aria-haspopup="listbox"
-                className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] bg-white rounded-xl shadow-lg shadow-black/10 border border-gray-200 hover:bg-gray-50 px-2.5 xs:px-4 md:px-5 flex items-center gap-1.5 xs:gap-2 md:gap-2.5 text-gray-800 text-xs xs:text-sm md:text-base font-semibold transition-colors focus:outline-none cursor-pointer shrink-0"
-                id="hero-media-dropdown-btn"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMediaDropdownOpen(!mediaDropdownOpen);
-                }}
-              >
-                <span className="flex items-center gap-1.5 xs:gap-2">
-                  <span className="flex items-center" id="search-dropdown-icon">
-                    {selectedMediaType === 'Photos' && (
-                      <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"></path>
-                        <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round"></path>
-                      </svg>
-                    )}
-                    {(selectedMediaType === 'Videos' || selectedMediaType === 'Video') && (
-                      <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                        <rect height="14" rx="2" ry="2" width="15" x="1" y="5"></rect>
-                      </svg>
-                    )}
-                    {(selectedMediaType === 'Banners' || selectedMediaType === 'Banner') && (
-                      <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <rect height="16" rx="2" width="20" x="2" y="4"></rect>
-                        <line x1="2" x2="22" y1="10" y2="10"></line>
-                      </svg>
-                    )}
-                    {(selectedMediaType === 'Templates' || selectedMediaType === 'Template') && (
-                      <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <rect height="18" rx="2" width="18" x="3" y="3"></rect>
-                        <line x1="3" x2="21" y1="9" y2="9"></line>
-                        <line x1="9" x2="9" y1="21" y2="9"></line>
-                      </svg>
-                    )}
-                  </span>
-                  <span id="search-dropdown-selected-label">{selectedMediaType}</span>
-                </span>
-                <svg
-                  className={`w-3.5 h-3.5 text-neutral-500 transition-transform duration-200 ${mediaDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  id="search-dropdown-arrow"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
+          {/* Search Bar & Trending Wrapper: Photos dropdown on left, search bar & trending row stacked on right */}
+          <div className="w-full mx-auto max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl">
+            <div className="w-full flex items-start gap-1.5 xs:gap-2 md:gap-2.5 relative z-30" id="hero-search-container">
+              {/* Photos Selector Box (Left Column) */}
+              <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
+                <button
+                  aria-expanded={mediaDropdownOpen}
+                  aria-haspopup="listbox"
+                  className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] bg-white rounded-xl shadow-lg shadow-black/10 border border-gray-200 hover:bg-gray-50 px-2.5 xs:px-4 md:px-5 flex items-center gap-1.5 xs:gap-2 md:gap-2.5 text-gray-800 text-xs xs:text-sm md:text-base font-semibold transition-colors focus:outline-none cursor-pointer shrink-0"
+                  id="hero-media-dropdown-btn"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMediaDropdownOpen(!mediaDropdownOpen);
+                  }}
                 >
-                  <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </button>
-
-              {/* Simple, clean Foodbliz style dropdown */}
-              {mediaDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-36 sm:w-44 bg-white rounded-lg shadow-md border border-gray-200 py-1 z-[100]" id="search-dropdown-menu" role="listbox">
-                  {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
-                    <button
-                      key={type}
-                      className={`search-dropdown-item w-full px-3.5 py-2 text-left text-xs sm:text-sm font-medium transition-colors flex items-center justify-between cursor-pointer ${
-                        selectedMediaType === type ? 'text-[#e2242b] font-semibold bg-red-50/60' : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
-                      }`}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMediaType(type);
-                        setMediaDropdownOpen(false);
-                      }}
-                    >
-                      <span>{type}</span>
-                      {selectedMediaType === type && (
-                        <svg className="w-3.5 h-3.5 text-[#e2242b] shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                  <span className="flex items-center gap-1.5 xs:gap-2">
+                    <span className="flex items-center" id="search-dropdown-icon">
+                      {selectedMediaType === 'Photos' && (
+                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"></path>
+                          <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round"></path>
                         </svg>
                       )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-
-            {/* Search Input & Button Box - Perfectly aligned with Photos Box */}
-            <div className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] flex-1 min-w-0 bg-white rounded-xl shadow-lg shadow-black/10 flex items-center border border-gray-200 overflow-hidden pl-2.5 xs:pl-4 md:pl-5 pr-1 sm:pr-1.5 md:pr-2">
-              <input
-                ref={searchInputRef}
-                className="w-full h-full py-0 text-xs xs:text-sm md:text-base text-gray-800 placeholder-neutral-400 bg-transparent border-0 focus:outline-none focus:ring-0 min-w-0"
-                placeholder="Search for photos"
-                type="text"
-                id="main-search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && dishesGridRef.current) {
-                    dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
-              />
-              <button
-                aria-label="Search"
-                className="h-[34px] w-[34px] xs:h-[38px] xs:w-[38px] sm:h-10 sm:w-10 md:h-[42px] md:w-[42px] bg-[#e2242b] hover:bg-[#c81e24] text-white rounded-lg flex items-center justify-center transition-colors focus:outline-none cursor-pointer shrink-0"
-                type="button"
-                onClick={() => {
-                  if (dishesGridRef.current) {
-                    dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
-              >
-                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 stroke-current fill-none stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Trending Tags - Desktop/Tablet view: centered text matching expanded width */}
-          <div className="hidden sm:block text-center text-xs sm:text-[13px] md:text-[14px] text-gray-800 font-normal mt-3.5 md:mt-4">
-            <span className="font-bold text-gray-900 text-sm sm:text-[14px] md:text-[15px]">Trending:</span>{' '}
-            <span className="text-sm sm:text-[14px] md:text-[15px] font-medium text-gray-800">
-              burger, pizza, biryani, coffee, desserts, noodles, pasta, wrap, sandwich, thali
-            </span>
-          </div>
-
-          {/* Trending Tags - Mobile view: STATIC 'Trending:' + Horizontally scrollable terms */}
-          <div className="sm:hidden w-full max-w-full mt-3 px-3 py-0.5 flex items-center gap-2">
-            {/* STATIC / FIXED 'Trending:' label - does NOT scroll */}
-            <span className="font-bold text-gray-900 text-xs shrink-0 select-none">
-              Trending:
-            </span>
-
-            {/* Scrollable container ONLY for the terms */}
-            <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
-              <div className="flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-800 font-medium w-max">
-                {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali'] as const).map((tag, idx, arr) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => handleTagClick(tag)}
-                    className="hover:text-[#e2242b] cursor-pointer transition-colors shrink-0 text-gray-800 text-xs"
+                      {(selectedMediaType === 'Videos' || selectedMediaType === 'Video') && (
+                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                          <rect height="14" rx="2" ry="2" width="15" x="1" y="5"></rect>
+                        </svg>
+                      )}
+                      {(selectedMediaType === 'Banners' || selectedMediaType === 'Banner') && (
+                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <rect height="16" rx="2" width="20" x="2" y="4"></rect>
+                          <line x1="2" x2="22" y1="10" y2="10"></line>
+                        </svg>
+                      )}
+                      {(selectedMediaType === 'Templates' || selectedMediaType === 'Template') && (
+                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <rect height="18" rx="2" width="18" x="3" y="3"></rect>
+                          <line x1="3" x2="21" y1="9" y2="9"></line>
+                          <line x1="9" x2="9" y1="21" y2="9"></line>
+                        </svg>
+                      )}
+                    </span>
+                    <span id="search-dropdown-selected-label">{selectedMediaType}</span>
+                  </span>
+                  <svg
+                    className={`w-3.5 h-3.5 text-neutral-500 transition-transform duration-200 ${mediaDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    id="search-dropdown-arrow"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
                   >
-                    {tag}{idx < arr.length - 1 ? ',' : ''}
+                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                </button>
+
+                {/* Compact, elegant Foodbliz style dropdown matching button width */}
+                {mediaDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 w-full bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-[100]" id="search-dropdown-menu" role="listbox">
+                    {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
+                      <button
+                        key={type}
+                        className={`search-dropdown-item w-full px-3 py-2 text-left text-xs sm:text-sm font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                          selectedMediaType === type ? 'text-[#e2242b] font-semibold bg-red-50/60' : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
+                        }`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMediaType(type);
+                          setMediaDropdownOpen(false);
+                        }}
+                      >
+                        <span className="truncate">{type}</span>
+                        {selectedMediaType === type && (
+                          <svg className="w-3.5 h-3.5 text-[#e2242b] shrink-0 ml-1.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Search Bar & Trending Row */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                {/* Search Input & Button Box */}
+                <div className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] w-full bg-white rounded-xl shadow-lg shadow-black/10 flex items-center border border-gray-200 overflow-hidden pl-2.5 xs:pl-4 md:pl-5 pr-1 sm:pr-1.5 md:pr-2">
+                  <input
+                    ref={searchInputRef}
+                    className="w-full h-full py-0 text-xs xs:text-sm md:text-base text-gray-800 placeholder-neutral-400 bg-transparent border-0 focus:outline-none focus:ring-0 min-w-0"
+                    placeholder="Search for photos"
+                    type="text"
+                    id="main-search-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && dishesGridRef.current) {
+                        dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  />
+                  <button
+                    aria-label="Search"
+                    className="h-[34px] w-[34px] xs:h-[38px] xs:w-[38px] sm:h-10 sm:w-10 md:h-[42px] md:w-[42px] bg-[#e2242b] hover:bg-[#c81e24] text-white rounded-lg flex items-center justify-center transition-colors focus:outline-none cursor-pointer shrink-0"
+                    type="button"
+                    onClick={() => {
+                      if (dishesGridRef.current) {
+                        dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  >
+                    <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 stroke-current fill-none stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
                   </button>
-                ))}
+                </div>
+
+                {/* Trending Keywords Row - Positioned immediately below search bar with 2-3px gap */}
+                <div className="w-full mt-0.5 sm:mt-1 pl-2.5 xs:pl-4 md:pl-5 pr-[42px] xs:pr-[46px] sm:pr-12 md:pr-14 overflow-hidden">
+                  <div
+                    className="w-full flex flex-nowrap items-center gap-x-2 overflow-hidden whitespace-nowrap text-ellipsis"
+                    id="hero-trending-row"
+                  >
+                    <span className="font-bold text-gray-900 text-xs sm:text-[13px] leading-normal shrink-0 select-none mr-1">
+                      Trending:
+                    </span>
+                    {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian'] as const).map((tag, idx, arr) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagClick(tag)}
+                        className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
+                      >
+                        {tag}{idx < arr.length - 1 ? ',' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2318,25 +2318,27 @@ export default function App() {
 
           <div
             ref={cuisineContainerRef}
-            className="overflow-x-auto overflow-y-hidden scroll-smooth scrollbar-none py-1 no-scrollbar"
+            className="overflow-x-auto overflow-y-hidden scroll-smooth scrollbar-none py-1 no-scrollbar lg:overflow-visible"
             id="cuisine-scroll-container"
           >
-            <div className="flex flex-col gap-2.5 sm:gap-3 md:gap-4 py-2 select-none" style={{ width: 'max-content' }}>
+            <div className="flex flex-col gap-2.5 sm:gap-3 md:gap-4 py-2 select-none w-max lg:w-full">
               {/* Row 1 */}
-              <div className="flex items-start justify-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-4">
+              <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
                 {CUISINES_ROW_1.map((item, idx) => (
                   <div
                     key={idx}
-                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 w-[148px] sm:w-[162px] md:w-[185px] lg:w-[205px] xl:w-[220px] py-1 transition-transform duration-200 hover:-translate-y-0.5"
+                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
                     onClick={() => handleTagClick(item.name)}
                   >
                     <img
                       alt={item.name}
                       referrerPolicy="no-referrer"
-                      className="w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-[195px] lg:h-[140px] xl:w-[210px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105"
+                      className={`w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105 ${
+                        item.name === 'Ice Cream' ? 'translate-y-2 sm:translate-y-2.5' : ''
+                      }`}
                       src={item.img}
                     />
-                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
+                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
                       {item.name}
                     </span>
                   </div>
@@ -2344,20 +2346,20 @@ export default function App() {
               </div>
 
               {/* Row 2 */}
-              <div className="flex items-start justify-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-4">
+              <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
                 {CUISINES_ROW_2.map((item, idx) => (
                   <div
                     key={idx}
-                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 w-[148px] sm:w-[162px] md:w-[185px] lg:w-[205px] xl:w-[220px] py-1 transition-transform duration-200 hover:-translate-y-0.5"
+                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
                     onClick={() => handleTagClick(item.name)}
                   >
                     <img
                       alt={item.name}
                       referrerPolicy="no-referrer"
-                      className="w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-[195px] lg:h-[140px] xl:w-[210px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105"
+                      className="w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105"
                       src={item.img}
                     />
-                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
+                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
                       {item.name}
                     </span>
                   </div>
