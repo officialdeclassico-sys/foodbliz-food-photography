@@ -820,6 +820,17 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Sync document title with client-side route changes for GA4 Enhanced Measurement
+  useEffect(() => {
+    if (currentRoute === 'packages') {
+      document.title = 'Foodbliz - Packages & Pricing';
+    } else if (currentRoute === 'about') {
+      document.title = 'Foodbliz - About Us';
+    } else {
+      document.title = 'Foodbliz - Professional Food Photography & Dishes';
+    }
+  }, [currentRoute]);
+
   // Prevent background website scrolling when modal is open
   useEffect(() => {
     const isAnyModalOpen = loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen;
