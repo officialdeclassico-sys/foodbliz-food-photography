@@ -713,6 +713,18 @@ export default function App() {
   // Packages Tab: 'standard' or 'subscription'
   const [packagesTab, setPackagesTab] = useState<'standard' | 'subscription'>('standard');
 
+  // Live package catalogue from the Foodbliz D1 API (static plans remain as fallback).
+  const [apiPackages, setApiPackages] = useState<PackagePlan[]>([]);
+
+  // Checkout form and pending-order confirmation.
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState<PackagePlan | null>(null);
+  const [checkoutCustomer, setCheckoutCustomer] = useState({ name: '', email: '', phone: '' });
+  const [createdOrderReference, setCreatedOrderReference] = useState<string | null>(null);
+
+
+
   // Login / Signup Modal State
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -769,6 +781,37 @@ export default function App() {
 
   const totalCartCount = Object.values(cart).reduce((sum, item) => sum + item.qty, 0);
 
+  // Load the published pricing catalogue from the Cloudflare Pages API.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/products', { headers: { Accept: 'application/json' } })
+      .then((response) => {
+        if (!response.ok) throw new Error('Unable to load packages');
+        return response.json();
+      })
+      .then((data: { products?: Array<{ id: string; name: string; package_name: string | null; description: string | null; price: number; currency: string }> }) => {
+        if (cancelled || !Array.isArray(data.products)) return;
+        const plans = data.products
+          .filter((product) => product.package_name === 'Standard' || product.package_name === 'Subscription')
+          .map((product): PackagePlan => ({
+            id: product.id,
+            name: product.name,
+            items: product.description ?? '',
+            price: String(product.price),
+            period: product.package_name === 'Subscription' ? '/ month' : undefined,
+            cta: product.package_name === 'Subscription' ? 'Subscribe Now' : 'Buy Now',
+            isPopular: product.id === 'foodbliz-standard-growth' || product.id === 'foodbliz-monthly-growth'
+          }));
+        if (plans.length > 0) setApiPackages(plans);
+      })
+      .catch(() => {
+        // Keep the existing built-in pricing cards visible if the API is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Banner carousel auto-play
   useEffect(() => {
     const timer = setInterval(() => {
@@ -822,7 +865,7 @@ export default function App() {
 
   // Prevent background website scrolling when modal is open
   useEffect(() => {
-    const isAnyModalOpen = loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen;
+    const isAnyModalOpen = loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen || checkoutOpen;
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -831,7 +874,7 @@ export default function App() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [loginModalOpen, faqModalOpen, contactModalOpen, selectedModalDish, cartDrawerOpen]);
+  }, [loginModalOpen, faqModalOpen, contactModalOpen, selectedModalDish, cartDrawerOpen, checkoutOpen]);
 
   // Cuisine scroll sync
   const scrollCuisine = (direction: 'left' | 'right') => {
@@ -925,10 +968,42 @@ export default function App() {
   };
 
   const handlePackageSelect = (pkgName: string, price: string, type: 'standard' | 'subscription') => {
-    if (type === 'standard') {
-      showToast(`${pkgName} package (₹${price}) selected! Ready for booking.`);
-    } else {
-      showToast(`${pkgName} plan (₹${price}/month) selected! Contacting plans team.`);
+    const plans = apiPackages.length > 0 ? apiPackages : [...STANDARD_PACKAGES, ...SUBSCRIPTION_PACKAGES];
+    const selected = plans.find((plan) => plan.name === pkgName && plan.price === price) ?? null;
+    if (!selected) {
+      showToast('This package is unavailable. Please refresh and try again.');
+      return;
+    }
+    setCheckoutProduct(selected);
+    setCreatedOrderReference(null);
+    setCheckoutCustomer({ name: '', email: '', phone: '' });
+    setCheckoutOpen(true);
+  };
+
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkoutProduct || checkoutSubmitting) return;
+    setCheckoutSubmitting(true);
+    try {
+      const response = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name: checkoutCustomer.name,
+          email: checkoutCustomer.email,
+          phone: checkoutCustomer.phone,
+          productId: checkoutProduct.id
+        })
+      });
+      const data = await response.json() as { order?: { reference?: string }; error?: string };
+      if (!response.ok || !data.order?.reference) {
+        throw new Error(data.error || 'We could not create your order. Please try again.');
+      }
+      setCreatedOrderReference(data.order.reference);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Checkout is temporarily unavailable.');
+    } finally {
+      setCheckoutSubmitting(false);
     }
   };
 
@@ -1481,7 +1556,7 @@ export default function App() {
               {/* THREE PRICING CARDS - STRICTLY IN ONE HORIZONTAL ROW ACROSS DESKTOP, TABLET, MOBILE */}
               <div className="w-full overflow-x-auto no-scrollbar py-1">
                 <div className="flex flex-row items-stretch justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8 min-w-full">
-                  {(packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES).map((pkg) => (
+                  {(apiPackages.length > 0 ? apiPackages.filter((pkg) => (packagesTab === 'standard' ? !pkg.period : !!pkg.period)) : (packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES)).map((pkg) => (
                     <div
                       key={pkg.id}
                       className={`flex-1 min-w-[96px] max-w-[340px] md:max-w-[370px] lg:max-w-[390px] bg-white rounded-2xl sm:rounded-3xl shadow-xl flex flex-col justify-between items-center text-center p-3 sm:p-5 md:p-6 lg:p-7 transition-all duration-200 ${
@@ -2953,6 +3028,59 @@ export default function App() {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PACKAGE CHECKOUT MODAL */}
+      {checkoutOpen && checkoutProduct && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-xs"
+          onClick={() => setCheckoutOpen(false)}
+        >
+          <div
+            className="w-full max-w-[480px] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 sm:p-6 border-b border-gray-100 flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-black tracking-widest text-[#E50914] uppercase">Foodbliz checkout</p>
+                <h3 className="text-xl font-black text-gray-900 mt-1">{createdOrderReference ? 'Order created' : 'Your package'}</h3>
+                <p className="text-sm text-gray-500 mt-1">{checkoutProduct.name} · {checkoutProduct.items}</p>
+              </div>
+              <button type="button" aria-label="Close checkout" className="w-8 h-8 rounded-full bg-gray-100 text-gray-600" onClick={() => setCheckoutOpen(false)}>×</button>
+            </div>
+            {createdOrderReference ? (
+              <div className="p-6">
+                <div className="rounded-xl bg-green-50 border border-green-100 p-4">
+                  <p className="text-sm font-bold text-green-800">Your order has been created.</p>
+                  <p className="text-xs text-green-700 mt-1">Order reference</p>
+                  <p className="text-lg font-black text-gray-900 mt-1">{createdOrderReference}</p>
+                </div>
+                <p className="text-sm text-gray-600 mt-4">Payment has not been initiated. Your order is pending until a payment method is connected.</p>
+                <button type="button" className="w-full mt-5 py-3 rounded-xl bg-gray-900 text-white font-bold" onClick={() => setCheckoutOpen(false)}>Close</button>
+              </div>
+            ) : (
+              <form className="p-5 sm:p-6 flex flex-col gap-4" onSubmit={handleCheckoutSubmit}>
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-100 p-3">
+                  <span className="text-sm font-semibold text-gray-700">{checkoutProduct.name}</span>
+                  <span className="text-lg font-black text-gray-900">₹{checkoutProduct.price}{checkoutProduct.period ? <span className="text-xs font-semibold text-gray-500"> / month</span> : null}</span>
+                </div>
+                <label className="text-xs font-bold text-gray-700">Full name
+                  <input required minLength={2} maxLength={120} autoComplete="name" value={checkoutCustomer.name} onChange={(e) => setCheckoutCustomer({ ...checkoutCustomer, name: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-3 text-sm font-normal" placeholder="Your full name" />
+                </label>
+                <label className="text-xs font-bold text-gray-700">Email address
+                  <input required type="email" maxLength={254} autoComplete="email" value={checkoutCustomer.email} onChange={(e) => setCheckoutCustomer({ ...checkoutCustomer, email: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-3 text-sm font-normal" placeholder="you@example.com" />
+                </label>
+                <label className="text-xs font-bold text-gray-700">Phone number <span className="font-normal text-gray-400">(optional)</span>
+                  <input type="tel" maxLength={30} autoComplete="tel" value={checkoutCustomer.phone} onChange={(e) => setCheckoutCustomer({ ...checkoutCustomer, phone: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-3 text-sm font-normal" placeholder="Phone number" />
+                </label>
+                <button disabled={checkoutSubmitting} type="submit" className="w-full py-3 rounded-xl bg-[#E50914] hover:bg-[#c81e24] disabled:opacity-60 text-white font-extrabold text-sm">
+                  {checkoutSubmitting ? 'Creating order…' : 'Continue'}
+                </button>
+                <p className="text-[11px] text-center text-gray-500">This creates an order only. No payment will be taken at this stage.</p>
+              </form>
+            )}
           </div>
         </div>
       )}
