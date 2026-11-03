@@ -713,6 +713,10 @@ export default function App() {
   // Packages Tab: 'standard' or 'subscription'
   const [packagesTab, setPackagesTab] = useState<'standard' | 'subscription'>('standard');
 
+  // Live package catalogue from the Foodbliz D1 API (static plans remain as fallback).
+  const [apiPackages, setApiPackages] = useState<PackagePlan[]>([]);
+
+
   // Login / Signup Modal State
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -768,6 +772,37 @@ export default function App() {
   };
 
   const totalCartCount = Object.values(cart).reduce((sum, item) => sum + item.qty, 0);
+
+  // Load the published pricing catalogue from the Cloudflare Pages API.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/products', { headers: { Accept: 'application/json' } })
+      .then((response) => {
+        if (!response.ok) throw new Error('Unable to load packages');
+        return response.json();
+      })
+      .then((data: { products?: Array<{ id: string; name: string; package_name: string | null; description: string | null; price: number; currency: string }> }) => {
+        if (cancelled || !Array.isArray(data.products)) return;
+        const plans = data.products
+          .filter((product) => product.package_name === 'Standard' || product.package_name === 'Subscription')
+          .map((product): PackagePlan => ({
+            id: product.id,
+            name: product.name,
+            items: product.description ?? '',
+            price: String(product.price),
+            period: product.package_name === 'Subscription' ? '/ month' : undefined,
+            cta: product.package_name === 'Subscription' ? 'Subscribe Now' : 'Buy Now',
+            isPopular: product.id === 'foodbliz-standard-growth' || product.id === 'foodbliz-monthly-growth'
+          }));
+        if (plans.length > 0) setApiPackages(plans);
+      })
+      .catch(() => {
+        // Keep the existing built-in pricing cards visible if the API is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Banner carousel auto-play
   useEffect(() => {
@@ -1481,7 +1516,7 @@ export default function App() {
               {/* THREE PRICING CARDS - STRICTLY IN ONE HORIZONTAL ROW ACROSS DESKTOP, TABLET, MOBILE */}
               <div className="w-full overflow-x-auto no-scrollbar py-1">
                 <div className="flex flex-row items-stretch justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8 min-w-full">
-                  {(packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES).map((pkg) => (
+                  {(apiPackages.length > 0 ? apiPackages.filter((pkg) => (packagesTab === 'standard' ? !pkg.period : !!pkg.period)) : (packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES)).map((pkg) => (
                     <div
                       key={pkg.id}
                       className={`flex-1 min-w-[96px] max-w-[340px] md:max-w-[370px] lg:max-w-[390px] bg-white rounded-2xl sm:rounded-3xl shadow-xl flex flex-col justify-between items-center text-center p-3 sm:p-5 md:p-6 lg:p-7 transition-all duration-200 ${
