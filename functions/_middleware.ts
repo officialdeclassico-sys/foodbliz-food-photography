@@ -76,10 +76,13 @@ async function verifyAccessJwt(token: string, teamDomain: string, audience: stri
     );
 
     const signedContent = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const signatureBytes = decodeBase64Url(parts[2]);
+    const signatureBuffer = new ArrayBuffer(signatureBytes.byteLength);
+    new Uint8Array(signatureBuffer).set(signatureBytes);
     return await crypto.subtle.verify(
       "RSASSA-PKCS1-v1_5",
       publicKey,
-      decodeBase64Url(parts[2]),
+      signatureBuffer,
       signedContent,
     );
   } catch {
