@@ -90,7 +90,8 @@ async function verifyAccessJwt(token: string, teamDomain: string, audience: stri
 export async function onRequest(context: PagesContext): Promise<Response> {
   const url = new URL(context.request.url);
   const isAdminApi = url.pathname.startsWith("/api/admin/");
-  if (!isAdminApi) return context.next();
+  const isAdminPage = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
+  if (!isAdminApi && !isAdminPage) return context.next();
 
   const teamDomain = context.env.ACCESS_TEAM_DOMAIN;
   const audience = context.env.ACCESS_AUD;
