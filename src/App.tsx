@@ -2205,44 +2205,396 @@ export default function App() {
           {/* 3. DIWALI HERO SECTION — EXACT REPLICA + CONTINUOUS FESTIVE ANIMATIONS */}
           <section
             id="about"
-            className="relative w-full overflow-hidden flex flex-col justify-start md:justify-center items-center px-3.5 sm:px-6 lg:px-8 pt-[46vw] min-[390px]:pt-[47vw] sm:pt-[38vw] pb-9 min-[390px]:pb-10 sm:pb-11 md:py-5 lg:py-6 min-h-[390px] sm:min-h-[420px] md:min-h-[395px] lg:min-h-[420px] xl:min-h-[435px] lg:aspect-[1347/381]"
+            className="relative w-full overflow-hidden flex flex-col justify-start md:justify-center items-center px-3.5 sm:px-6 lg:px-8 pt-[35.5vw] min-[390px]:pt-[36vw] sm:pt-[35vw] pb-9 min-[390px]:pb-10 sm:pb-11 md:py-5 lg:py-6 min-h-[390px] sm:min-h-[420px] md:min-h-[395px] lg:min-h-[420px] xl:min-h-[435px] lg:aspect-[1347/381]"
             style={{
-              background: 'linear-gradient(180deg, #27053a 0%, #4d0d52 38%, #630b4c 68%, #770b4e 100%)'
+              background: 'linear-gradient(180deg, #27053a 0%, #3d0546 36%, #56054a 68%, #6c044e 100%)'
             }}
           >
-            {/* Shared Coordinate-Locked Diwali Decorative Scene Render Helper (Desktop Full-Bleed + Mobile Upper Festive Stage) */}
-            {(['desktop', 'mobile-left', 'mobile-right'] as const).map((viewportMode) => (
+            {/* 3A. MOBILE-ONLY DIWALI COUPLE FESTIVE STAGE (Exact Reference Replica + Continuous Animations) */}
+            <div
+              aria-hidden="true"
+              className="block md:hidden absolute top-0 left-0 right-0 w-full aspect-[1206/456] pointer-events-none select-none z-0 overflow-hidden"
+              style={{
+                WebkitMaskImage: 'linear-gradient(180deg, #000 0%, #000 89%, transparent 100%)',
+                maskImage: 'linear-gradient(180deg, #000 0%, #000 89%, transparent 100%)'
+              }}
+            >
+              {/* 1. Base Reference Illustration (Seamless Blend into Purple Hero Background) */}
+              <img
+                src="/assets/aistudio/diwali-mobile-couple-hero.png"
+                alt=""
+                className="w-full h-full object-fill block select-none pointer-events-none"
+              />
+
+              {/* 2. Hanging Rope Lights — Calm, Subtle Warm Illumination Along Existing Rope & Bulb Positions */}
+              {[
+                // Left rope strand bulbs
+                { xp: 2.46, yp: 9.8, dur: '6.2s', delay: '-0.8s' },
+                { xp: 8.44, yp: 14.22, dur: '7.4s', delay: '-2.9s' },
+                { xp: 15.1, yp: 10.83, dur: '5.8s', delay: '-1.5s' },
+                { xp: 20.03, yp: 4.63, dur: '6.9s', delay: '-4.1s' },
+                { xp: 22.19, yp: 0.5, dur: '7.1s', delay: '-2.2s' },
+                // Center rope strand bulbs
+                { xp: 34.2, yp: 5.5, dur: '6.5s', delay: '-3.4s' },
+                { xp: 38.9, yp: 11.01, dur: '5.9s', delay: '-1.1s' },
+                { xp: 43.93, yp: 13.42, dur: '7.6s', delay: '-4.8s' },
+                { xp: 49.66, yp: 14.1, dur: '6.3s', delay: '-2.5s' },
+                { xp: 55.25, yp: 9.84, dur: '7.2s', delay: '-0.6s' },
+                { xp: 59.52, yp: 2.56, dur: '6.7s', delay: '-3.9s' },
+                // Right rope strand bulbs
+                { xp: 76.84, yp: 0.5, dur: '7.0s', delay: '-1.9s' },
+                { xp: 80.06, yp: 7.31, dur: '6.1s', delay: '-4.4s' },
+                { xp: 84.67, yp: 12.73, dur: '7.5s', delay: '-2.7s' },
+                { xp: 90.13, yp: 14.87, dur: '5.7s', delay: '-0.9s' },
+                { xp: 95.73, yp: 10.98, dur: '6.8s', delay: '-3.3s' },
+                { xp: 99.6, yp: 3.73, dur: '7.3s', delay: '-1.7s' }
+              ].map((bulb, idx) => (
+                <span
+                  key={`mob-rope-bulb-${idx}`}
+                  className="diwali-anim-node absolute rounded-full pointer-events-none z-[1]"
+                  style={{
+                    left: `${bulb.xp}%`,
+                    top: `${bulb.yp}%`,
+                    width: '2.2%',
+                    aspectRatio: '1 / 1',
+                    background: 'radial-gradient(circle, rgba(255, 245, 190, 0.52) 0%, rgba(255, 195, 70, 0.24) 55%, rgba(255, 160, 20, 0) 100%)',
+                    mixBlendMode: 'screen',
+                    animation: `diwaliMobileRopeBulbGlow ${bulb.dur} ease-in-out ${bulb.delay} infinite`
+                  }}
+                />
+              ))}
+
+              {/* 3. Continuous Fireworks Behind the Couple (z-[2], occluded by Couple Foreground at z-[3]) */}
+              {[
+                { xp: 6.3, yp: 27.5, size: 7.2, dur: '4.8s', delay: '-0.7s' },
+                { xp: 36.4, yp: 21.8, size: 8.0, dur: '5.5s', delay: '-2.8s' },
+                { xp: 44.2, yp: 31.8, size: 5.8, dur: '4.4s', delay: '-1.4s' },
+                { xp: 52.8, yp: 24.5, size: 6.4, dur: '6.1s', delay: '-3.9s' },
+                { xp: 64.5, yp: 20.2, size: 6.8, dur: '5.1s', delay: '-2.1s' },
+                { xp: 71.8, yp: 15.2, size: 9.2, dur: '4.9s', delay: '-0.4s' },
+                { xp: 83.2, yp: 25.0, size: 6.2, dur: '5.8s', delay: '-3.3s' }
+              ].map((fw, idx) => (
+                <div
+                  key={`mob-fw-${idx}`}
+                  className="diwali-anim-node absolute pointer-events-none z-[2]"
+                  style={{
+                    left: `${fw.xp}%`,
+                    top: `${fw.yp}%`,
+                    width: `${fw.size}%`,
+                    aspectRatio: '90 / 80',
+                    opacity: 0.85
+                  }}
+                >
+                  {/* Rocket Launch Trail */}
+                  <span
+                    className="diwali-anim-node absolute left-1/2 top-1/2 w-[1.5px] h-[22px] rounded-full pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(180deg, #fffbe6 0%, #ffb703 45%, rgba(255, 100, 0, 0) 100%)',
+                      boxShadow: '0 0 4px rgba(255, 200, 60, 0.75)',
+                      animation: `diwaliRocketLaunch ${fw.dur} ease-out ${fw.delay} infinite`
+                    }}
+                  />
+                  {/* Radial Burst Sprite */}
+                  <img
+                    src="/assets/aistudio/diwali-firework-lg.png"
+                    alt=""
+                    className="diwali-anim-node absolute left-1/2 top-1/2 w-full h-full object-contain pointer-events-none"
+                    style={{
+                      mixBlendMode: 'screen',
+                      animation: `diwaliFireworkBurst ${fw.dur} cubic-bezier(0.16, 1, 0.3, 1) ${fw.delay} infinite`
+                    }}
+                  />
+                  {/* Sparkling Fading Embers */}
+                  {[
+                    { dx: '12px', dy: '-11px' },
+                    { dx: '-12px', dy: '-10px' },
+                    { dx: '15px', dy: '3px' },
+                    { dx: '-14px', dy: '4px' },
+                    { dx: '8px', dy: '12px' },
+                    { dx: '-9px', dy: '11px' }
+                  ].map((sp, sIdx) => (
+                    <span
+                      key={`mob-fw-sp-${sIdx}`}
+                      className="diwali-anim-node absolute left-1/2 top-1/2 w-[2.5px] h-[2.5px] rounded-full pointer-events-none"
+                      style={{
+                        background: sIdx % 2 === 0 ? '#fff6b3' : '#ff99c8',
+                        boxShadow: '0 0 4px #ffd166',
+                        ['--dx' as string]: sp.dx,
+                        ['--dy' as string]: sp.dy,
+                        animation: `diwaliSparkleDrift ${fw.dur} ease-out ${fw.delay} infinite`
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+
+              {/* 4. Background Atmosphere — Subtle Floating Golden Particles & Gentle Sparkles */}
+              {[
+                { left: '12%', top: '26%', size: '2.5px', dur: '5.6s', delay: '-0.9s' },
+                { left: '29%', top: '34%', size: '2px', dur: '6.4s', delay: '-2.7s' },
+                { left: '41%', top: '19%', size: '2.5px', dur: '5.2s', delay: '-1.8s' },
+                { left: '48%', top: '42%', size: '2px', dur: '6.8s', delay: '-4.2s' },
+                { left: '64%', top: '36%', size: '2.5px', dur: '5.9s', delay: '-3.1s' },
+                { left: '67%', top: '52%', size: '2px', dur: '5.4s', delay: '-1.2s' },
+                { left: '86%', top: '28%', size: '2.5px', dur: '6.2s', delay: '-2.4s' },
+                { left: '91%', top: '56%', size: '2px', dur: '5.7s', delay: '-3.8s' }
+              ].map((pt, idx) => (
+                <span
+                  key={`mob-atmos-pt-${idx}`}
+                  className="diwali-anim-node absolute rounded-full pointer-events-none z-[2]"
+                  style={{
+                    left: pt.left,
+                    top: pt.top,
+                    width: pt.size,
+                    height: pt.size,
+                    background: idx % 2 === 0 ? '#ffe885' : '#ffbf69',
+                    boxShadow: '0 0 4px rgba(255, 215, 90, 0.8)',
+                    mixBlendMode: 'screen',
+                    animation: `diwaliMobileFloatingParticle ${pt.dur} ease-in-out ${pt.delay} infinite`
+                  }}
+                />
+              ))}
+
+              {/* Happy Diwali Subtle Golden Glow & Twinkling Stars */}
+              <div
+                className="diwali-anim-node absolute pointer-events-none z-[2]"
+                style={{
+                  left: '9.5%',
+                  top: '28%',
+                  width: '28%',
+                  height: '42%',
+                  background: 'radial-gradient(ellipse at center, rgba(255, 200, 75, 0.24) 0%, rgba(255, 140, 20, 0.08) 55%, rgba(255, 120, 0, 0) 80%)',
+                  mixBlendMode: 'screen',
+                  animation: 'diwaliRangoliPulse 4.8s ease-in-out infinite'
+                }}
+              />
+
+              {/* Right Sky Lantern Subtle Inner Flicker */}
+              <span
+                className="diwali-anim-node absolute rounded-full pointer-events-none z-[2]"
+                style={{
+                  left: '93.23%',
+                  top: '36.33%',
+                  width: '4.8%',
+                  aspectRatio: '1 / 1',
+                  background: 'radial-gradient(circle, rgba(255, 250, 205, 0.65) 0%, rgba(255, 175, 35, 0.35) 55%, rgba(255, 120, 0, 0) 100%)',
+                  mixBlendMode: 'screen',
+                  animation: 'diwaliLanternInnerGlow 2.4s ease-in-out infinite'
+                }}
+              />
+
+              {/* 5. Couple Foreground Occlusion Layer (Keeps Fireworks Strictly Behind the Couple) */}
+              <img
+                src="/assets/aistudio/diwali-mobile-couple-fg.png"
+                alt=""
+                className="diwali-anim-node absolute pointer-events-none select-none z-[3]"
+                style={{
+                  left: '41.46%',
+                  top: '15.35%',
+                  width: '50.58%',
+                  height: '71.27%'
+                }}
+              />
+
+              {/* 6A. Man's Subtle Head Movement, Warm Facial Expression & Irregular Eye Blinking */}
+              <div
+                className="diwali-anim-node absolute pointer-events-none z-[4]"
+                style={{
+                  left: '53.07%',
+                  top: '15.79%',
+                  width: '11.77%',
+                  height: '35.09%',
+                  transformOrigin: '34% 86%',
+                  animation: 'diwaliMobileManHeadMove 6.4s ease-in-out infinite'
+                }}
+              >
+                <img
+                  src="/assets/aistudio/diwali-mobile-man-head.png"
+                  alt=""
+                  className="w-full h-full object-fill block"
+                />
+                {/* Natural Irregular Eye Blink Overlay */}
+                <img
+                  src="/assets/aistudio/diwali-mobile-man-blink.png"
+                  alt=""
+                  className="diwali-anim-node absolute inset-0 w-full h-full object-fill pointer-events-none"
+                  style={{
+                    transformOrigin: '52% 65%',
+                    animation: 'diwaliMobileManBlink 5.4s ease-in-out infinite'
+                  }}
+                />
+                {/* Subtle Warm Smile & Cheek Candlelight Expression Glow */}
+                <span
+                  className="diwali-anim-node absolute rounded-full pointer-events-none"
+                  style={{
+                    left: '34%',
+                    top: '58%',
+                    width: '44%',
+                    height: '28%',
+                    background: 'radial-gradient(circle, rgba(255, 200, 95, 0.42) 0%, rgba(255, 140, 30, 0) 75%)',
+                    mixBlendMode: 'screen',
+                    animation: 'diwaliMobileExpressionGlow 3.8s ease-in-out infinite'
+                  }}
+                />
+              </div>
+
+              {/* 6B. Woman's Subtle Head Movement, Warm Facial Expression & Irregular Eye Blinking */}
+              <div
+                className="diwali-anim-node absolute pointer-events-none z-[4]"
+                style={{
+                  left: '69.82%',
+                  top: '17.11%',
+                  width: '12.44%',
+                  height: '35.53%',
+                  transformOrigin: '64% 86%',
+                  animation: 'diwaliMobileWomanHeadMove 6.9s ease-in-out -1.8s infinite'
+                }}
+              >
+                <img
+                  src="/assets/aistudio/diwali-mobile-woman-head.png"
+                  alt=""
+                  className="w-full h-full object-fill block"
+                />
+                {/* Natural Irregular Eye Blink Overlay */}
+                <img
+                  src="/assets/aistudio/diwali-mobile-woman-blink.png"
+                  alt=""
+                  className="diwali-anim-node absolute inset-0 w-full h-full object-fill pointer-events-none"
+                  style={{
+                    transformOrigin: '36% 63%',
+                    animation: 'diwaliMobileWomanBlink 6.3s ease-in-out -2.1s infinite'
+                  }}
+                />
+                {/* Subtle Warm Smile & Cheek Candlelight Expression Glow */}
+                <span
+                  className="diwali-anim-node absolute rounded-full pointer-events-none"
+                  style={{
+                    left: '18%',
+                    top: '58%',
+                    width: '44%',
+                    height: '28%',
+                    background: 'radial-gradient(circle, rgba(255, 200, 95, 0.42) 0%, rgba(255, 140, 30, 0) 75%)',
+                    mixBlendMode: 'screen',
+                    animation: 'diwaliMobileExpressionGlow 4.2s ease-in-out -1.1s infinite'
+                  }}
+                />
+              </div>
+
+              {/* 6C. Man's Hand Carefully Lighting the Central Diya + Matchstick Spark */}
+              <img
+                src="/assets/aistudio/diwali-mobile-man-hand.png"
+                alt=""
+                className="diwali-anim-node absolute pointer-events-none z-[4]"
+                style={{
+                  left: '53.48%',
+                  top: '61.84%',
+                  width: '10.78%',
+                  height: '16.67%',
+                  transformOrigin: '18% 28%',
+                  animation: 'diwaliMobileManLightingHand 4.8s ease-in-out infinite'
+                }}
+              />
+              <span
+                className="diwali-anim-node absolute rounded-full pointer-events-none z-[5]"
+                style={{
+                  left: '64.15%',
+                  top: '75.2%',
+                  width: '1.6%',
+                  aspectRatio: '1 / 1',
+                  background: 'radial-gradient(circle, #ffffff 0%, #ffe066 45%, rgba(255, 140, 0, 0) 100%)',
+                  mixBlendMode: 'screen',
+                  animation: 'diwaliMobileMatchSpark 4.8s ease-in-out infinite'
+                }}
+              />
+
+              {/* 6D. Woman's Hands Gently Tending & Lighting the Diya */}
+              <img
+                src="/assets/aistudio/diwali-mobile-woman-hands.png"
+                alt=""
+                className="diwali-anim-node absolute pointer-events-none z-[4]"
+                style={{
+                  left: '69.65%',
+                  top: '62.72%',
+                  width: '9.62%',
+                  height: '17.11%',
+                  transformOrigin: '84% 28%',
+                  animation: 'diwaliMobileWomanLightingHands 5.2s ease-in-out -1.4s infinite'
+                }}
+              />
+
+              {/* 7. Diyas — Natural Flickering Flames, Subtle Flame Glow & Floor Shimmer */}
+              {[
+                // Top Happy Diwali Emblem Golden Diya Flame
+                { xp: 24.13, flameTop: 22.8, flameW: 1.7, flameH: 6.8, auraTop: 19.89, auraW: 4.8, shimmerTop: 0, shimmerW: 0, shimmerH: 0, dur: '1.9s', delay: '-0.4s' },
+                // Floor Diya 1 (Far left)
+                { xp: 38.94, flameTop: 80.5, flameW: 1.45, flameH: 7.4, auraTop: 77.12, auraW: 4.8, shimmerTop: 86.2, shimmerW: 5.5, shimmerH: 3.4, dur: '1.75s', delay: '-0.2s' },
+                // Floor Diya 2 (Left front small)
+                { xp: 42.51, flameTop: 85.4, flameW: 1.15, flameH: 5.6, auraTop: 82.9, auraW: 3.8, shimmerTop: 89.8, shimmerW: 4.2, shimmerH: 2.8, dur: '2.05s', delay: '-1.1s' },
+                // Floor Diya 3 (Center-left front)
+                { xp: 57.7, flameTop: 86.2, flameW: 1.35, flameH: 6.6, auraTop: 83.11, auraW: 4.5, shimmerTop: 91.2, shimmerW: 5.0, shimmerH: 3.2, dur: '1.65s', delay: '-0.7s' },
+                // Floor Diya 4 (Center-left back small)
+                { xp: 59.57, flameTop: 83.8, flameW: 1.0, flameH: 4.8, auraTop: 81.35, auraW: 3.2, shimmerTop: 87.5, shimmerW: 3.6, shimmerH: 2.4, dur: '2.15s', delay: '-1.5s' },
+                // Floor Diya 5 (Main large central diya being lit by the couple)
+                { xp: 65.7, flameTop: 79.8, flameW: 2.15, flameH: 10.6, auraTop: 75.5, auraW: 7.2, shimmerTop: 88.2, shimmerW: 8.2, shimmerH: 4.6, dur: '1.55s', delay: '-0.3s' },
+                // Floor Diya 6 (Right-center behind main diya)
+                { xp: 69.14, flameTop: 78.6, flameW: 1.25, flameH: 6.2, auraTop: 75.82, auraW: 4.2, shimmerTop: 84.4, shimmerW: 4.6, shimmerH: 2.8, dur: '1.85s', delay: '-0.9s' },
+                // Floor Diya 7 (Far right front small)
+                { xp: 74.3, flameTop: 86.4, flameW: 1.2, flameH: 5.8, auraTop: 83.71, auraW: 4.0, shimmerTop: 90.8, shimmerW: 4.5, shimmerH: 2.8, dur: '1.95s', delay: '-1.3s' }
+              ].map((diya, idx) => (
+                <React.Fragment key={`mob-diya-${idx}`}>
+                  {/* Subtle Warm Glow Around Flame */}
+                  <span
+                    className="diwali-anim-node absolute rounded-full pointer-events-none z-[5]"
+                    style={{
+                      left: `${diya.xp}%`,
+                      top: `${diya.auraTop}%`,
+                      width: `${diya.auraW}%`,
+                      aspectRatio: '1 / 1',
+                      background: 'radial-gradient(circle, rgba(255, 225, 120, 0.55) 0%, rgba(255, 145, 20, 0.25) 50%, rgba(255, 100, 0, 0) 78%)',
+                      mixBlendMode: 'screen',
+                      animation: `diwaliDiyaAura ${diya.dur} ease-in-out ${diya.delay} infinite`
+                    }}
+                  />
+                  {/* Natural Flickering Flame Teardrop */}
+                  <span
+                    className="diwali-anim-node absolute pointer-events-none z-[5]"
+                    style={{
+                      left: `${diya.xp}%`,
+                      top: `${diya.flameTop}%`,
+                      width: `${diya.flameW}%`,
+                      height: `${diya.flameH}%`,
+                      transformOrigin: '50% 92%',
+                      background: 'radial-gradient(ellipse 50% 65% at 50% 68%, #ffffff 0%, #fff3b0 38%, #ff9f1c 72%, rgba(255, 80, 0, 0) 100%)',
+                      borderRadius: '50% 50% 42% 42% / 68% 68% 32% 32%',
+                      mixBlendMode: 'screen',
+                      animation: `diwaliFlameFlicker ${diya.dur} ease-in-out ${diya.delay} infinite`
+                    }}
+                  />
+                  {/* Subtle Floor Light Reflection Shimmer */}
+                  {diya.shimmerW > 0 && (
+                    <span
+                      className="diwali-anim-node absolute rounded-full pointer-events-none z-[5]"
+                      style={{
+                        left: `${diya.xp}%`,
+                        top: `${diya.shimmerTop}%`,
+                        width: `${diya.shimmerW}%`,
+                        height: `${diya.shimmerH}%`,
+                        background: 'radial-gradient(ellipse at center, rgba(255, 195, 75, 0.45) 0%, rgba(255, 120, 20, 0.2) 55%, rgba(255, 90, 0, 0) 100%)',
+                        mixBlendMode: 'screen',
+                        animation: `diwaliFloorShimmer ${diya.dur} ease-in-out ${diya.delay} infinite`
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* 3B. DESKTOP-ONLY DIWALI HERO STAGE (100% Unchanged Desktop Design & Animations) */}
+            {(['desktop'] as const).map((viewportMode) => (
               <div
                 key={viewportMode}
                 aria-hidden="true"
-                className={
-                  viewportMode === 'desktop'
-                    ? 'hidden md:block absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden'
-                    : viewportMode === 'mobile-left'
-                    ? 'block md:hidden absolute top-0 left-0 w-[212%] sm:w-[175%] aspect-[1347/381] pointer-events-none select-none z-0 overflow-hidden'
-                    : 'block md:hidden absolute top-0 right-0 w-[212%] sm:w-[175%] aspect-[1347/381] pointer-events-none select-none z-0 overflow-hidden'
-                }
-                style={
-                  viewportMode === 'mobile-left'
-                    ? {
-                        WebkitMaskImage:
-                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(90deg, #000 0%, #000 22%, transparent 26.5%)',
-                        WebkitMaskComposite: 'source-in',
-                        maskImage:
-                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(90deg, #000 0%, #000 22%, transparent 26.5%)',
-                        maskComposite: 'intersect'
-                      }
-                    : viewportMode === 'mobile-right'
-                    ? {
-                        WebkitMaskImage:
-                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(270deg, #000 0%, #000 23%, transparent 27.5%)',
-                        WebkitMaskComposite: 'source-in',
-                        maskImage:
-                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(270deg, #000 0%, #000 23%, transparent 27.5%)',
-                        maskComposite: 'intersect'
-                      }
-                    : undefined
-                }
+                className="hidden md:block absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden"
               >
                 {/* Base High-Resolution Diwali Hero Artwork */}
                 <img
