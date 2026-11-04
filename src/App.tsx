@@ -3427,122 +3427,129 @@ export default function App() {
       </section>
 
       {/* 5. EXPLORE POPULAR CUISINES SECTION */}
-      <section className="w-full bg-white py-8 sm:py-10 md:py-12 px-4 sm:px-8 lg:px-12 relative select-none border-b border-gray-100">
+      <section className="w-full py-8 sm:py-10 md:py-12 relative select-none">
         <div className="w-full mx-auto">
-        <div className="flex flex-col items-center justify-center text-center mb-6 md:mb-8">
-          <div className="w-full flex items-center justify-center gap-4 max-w-3xl lg:max-w-4xl mx-auto">
-            <div className="flex-1 h-[2px] bg-[#E50914]"></div>
-            <h2 className="text-xl sm:text-2xl md:text-[28px] lg:text-[30px] font-black tracking-tight uppercase whitespace-nowrap text-[#111827]">
-              EXPLORE <span className="text-[#E50914]">POPULAR CUISINES</span>
-            </h2>
-            <div className="flex-1 h-[2px] bg-[#E50914]"></div>
+          <div className="flex flex-col items-center justify-center text-center mb-6 md:mb-8 px-4 sm:px-8 lg:px-12">
+            <div className="w-full flex items-center justify-center gap-4 max-w-3xl lg:max-w-4xl mx-auto">
+              <div className="flex-1 h-[2px] bg-[#E50914]"></div>
+              <h2 className="text-xl sm:text-2xl md:text-[28px] lg:text-[30px] font-black tracking-tight uppercase whitespace-nowrap text-[#111827]">
+                EXPLORE <span className="text-[#E50914]">POPULAR CUISINES</span>
+              </h2>
+              <div className="flex-1 h-[2px] bg-[#E50914]"></div>
+            </div>
+            <p className="text-gray-500 text-xs sm:text-sm md:text-base font-medium mt-1.5">
+              Find the perfect food category for your menu, delivery app or social media.
+            </p>
           </div>
-          <p className="text-gray-500 text-xs sm:text-sm md:text-base font-medium mt-1.5">
-            Find the perfect food category for your menu, delivery app or social media.
-          </p>
-        </div>
 
-        <div className="relative w-full px-2 sm:px-4">
-          <button
-            aria-label="Previous cuisines"
-            className="absolute -left-2 sm:-left-3 md:-left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black hover:bg-gray-50 hover:shadow-lg transition-all focus:outline-none cursor-pointer"
-            id="cuisine-prev"
-            type="button"
-            onClick={() => scrollCuisine('left')}
-          >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"></path>
-            </svg>
-          </button>
-          <button
-            aria-label="Next cuisines"
-            className="absolute -right-2 sm:-right-3 md:-right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black hover:bg-gray-50 hover:shadow-lg transition-all focus:outline-none cursor-pointer"
-            id="cuisine-next"
-            type="button"
-            onClick={() => scrollCuisine('right')}
-          >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24">
-              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"></path>
-            </svg>
-          </button>
+          <div className="relative w-full">
+            <button
+              aria-label="Previous cuisines"
+              className="absolute left-1.5 sm:left-3 md:left-4 lg:left-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 bg-white/95 rounded-full shadow-md border border-gray-200/80 flex items-center justify-center text-gray-700 hover:text-black hover:bg-white hover:shadow-lg transition-all focus:outline-none cursor-pointer"
+              id="cuisine-prev"
+              type="button"
+              onClick={() => scrollCuisine('left')}
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24">
+                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"></path>
+              </svg>
+            </button>
+            <button
+              aria-label="Next cuisines"
+              className="absolute right-1.5 sm:right-3 md:right-4 lg:right-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 bg-white/95 rounded-full shadow-md border border-gray-200/80 flex items-center justify-center text-gray-700 hover:text-black hover:bg-white hover:shadow-lg transition-all focus:outline-none cursor-pointer"
+              id="cuisine-next"
+              type="button"
+              onClick={() => scrollCuisine('right')}
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"></path>
+              </svg>
+            </button>
 
-          <div
-            ref={cuisineContainerRef}
-            className="overflow-x-auto overflow-y-hidden scroll-smooth scrollbar-none py-1 no-scrollbar lg:overflow-visible"
-            id="cuisine-scroll-container"
-          >
-            <div className="flex flex-col gap-2.5 sm:gap-3 md:gap-4 py-2 select-none w-max lg:w-full">
-              {/* Row 1 */}
-              <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
-                {CUISINES_ROW_1.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
-                    onClick={() => handleTagClick(item.name)}
-                  >
-                    <img
-                      alt={item.name}
-                      referrerPolicy="no-referrer"
-                      className={`w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105 ${
-                        item.name === 'Ice Cream' ? 'translate-y-2 sm:translate-y-2.5' : ''
-                      }`}
-                      src={item.img}
-                    />
-                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
-                      {item.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div
+              ref={cuisineContainerRef}
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const maxScroll = el.scrollWidth - el.clientWidth;
+                if (maxScroll > 10) {
+                  setCuisinePage(el.scrollLeft > maxScroll / 2 ? 1 : 0);
+                }
+              }}
+              className="w-full overflow-x-auto overflow-y-hidden scroll-smooth scrollbar-none py-1 px-4 sm:px-8 lg:px-12 no-scrollbar lg:overflow-visible"
+              id="cuisine-scroll-container"
+            >
+              <div className="flex flex-col gap-2.5 sm:gap-3 md:gap-4 py-2 select-none w-max lg:w-full">
+                {/* Row 1 */}
+                <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
+                  {CUISINES_ROW_1.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
+                      onClick={() => handleTagClick(item.name)}
+                    >
+                      <img
+                        alt={item.name}
+                        referrerPolicy="no-referrer"
+                        className={`w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-105 ${
+                          item.name === 'Ice Cream' ? 'translate-y-2 sm:translate-y-2.5' : ''
+                        }`}
+                        src={item.img}
+                      />
+                      <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
+                        {item.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
 
-              {/* Row 2 */}
-              <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
-                {CUISINES_ROW_2.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
-                    onClick={() => handleTagClick(item.name)}
-                  >
-                    <img
-                      alt={item.name}
-                      referrerPolicy="no-referrer"
-                      className="w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto transition-transform duration-300 group-hover:scale-105"
-                      src={item.img}
-                    />
-                    <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
-                      {item.name}
-                    </span>
-                  </div>
-                ))}
+                {/* Row 2 */}
+                <div className="w-max lg:w-full flex lg:grid lg:grid-cols-8 items-start gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-3 xl:gap-4">
+                  {CUISINES_ROW_2.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="cuisine-card group flex flex-col items-center justify-center cursor-pointer flex-shrink-0 lg:flex-shrink w-[148px] sm:w-[162px] md:w-[185px] lg:w-full py-1 transition-transform duration-200 hover:-translate-y-0.5"
+                      onClick={() => handleTagClick(item.name)}
+                    >
+                      <img
+                        alt={item.name}
+                        referrerPolicy="no-referrer"
+                        className="w-[148px] h-[110px] sm:w-[162px] sm:h-[120px] md:w-[180px] md:h-[130px] lg:w-full lg:h-[130px] xl:h-[150px] object-contain mx-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
+                        src={item.img}
+                      />
+                      <span className="font-bold text-gray-900 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[16px] xl:text-[18px] text-center block" style={{ marginTop: '-8px' }}>
+                        {item.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 2 Dots Pagination */}
-          <div className="flex items-center justify-center gap-2 mt-5 md:mt-6" id="cuisine-pagination-dots">
-            <button
-              aria-label="Page 1"
-              className={`cuisine-dot w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none ${
-                cuisinePage === 0 ? 'bg-[#E50914] scale-125' : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              type="button"
-              onClick={() => scrollToCuisinePage(0)}
-            ></button>
-            <button
-              aria-label="Page 2"
-              className={`cuisine-dot w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none ${
-                cuisinePage === 1 ? 'bg-[#E50914] scale-125' : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              type="button"
-              onClick={() => scrollToCuisinePage(1)}
-            ></button>
+            {/* 2 Dots Pagination */}
+            <div className="flex items-center justify-center gap-2 mt-5 md:mt-6 px-4" id="cuisine-pagination-dots">
+              <button
+                aria-label="Page 1"
+                className={`cuisine-dot w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none ${
+                  cuisinePage === 0 ? 'bg-[#E50914] scale-125' : 'bg-gray-300 hover:bg-gray-400'
+                }`}
+                type="button"
+                onClick={() => scrollToCuisinePage(0)}
+              ></button>
+              <button
+                aria-label="Page 2"
+                className={`cuisine-dot w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none ${
+                  cuisinePage === 1 ? 'bg-[#E50914] scale-125' : 'bg-gray-300 hover:bg-gray-400'
+                }`}
+                type="button"
+                onClick={() => scrollToCuisinePage(1)}
+              ></button>
+            </div>
           </div>
-        </div>
         </div>
       </section>
 
       {/* 6. ALL POPULAR DISHES SECTION */}
-      <section className="w-full bg-white py-8 sm:py-12 md:py-14 px-3 sm:px-8 lg:px-12 relative select-none mt-2" ref={dishesGridRef}>
+      <section className="w-full bg-white py-8 sm:py-12 md:py-14 px-3 sm:px-8 lg:px-12 relative select-none" ref={dishesGridRef}>
         <div className="w-full mx-auto">
         <div className="flex flex-col items-center justify-center text-center mb-6 md:mb-8">
           <div className="w-full flex items-center justify-center gap-4 max-w-3xl lg:max-w-4xl mx-auto">
