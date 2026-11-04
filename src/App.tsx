@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // Data types
 interface Dish {
@@ -655,12 +656,274 @@ const TestimonialsSection: React.FC = () => {
   );
 };
 
+// REUSABLE MODAL BACKGROUND SCROLL-LOCK HOOK (iOS Safari, Android Chrome & Desktop compatible)
+function useModalScrollLock(isLocked: boolean) {
+  const scrollPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useLayoutEffect(() => {
+    if (!isLocked || typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0;
+    scrollPosRef.current = { x: scrollX, y: scrollY };
+
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    const htmlEl = document.documentElement;
+    const bodyEl = document.body;
+
+    const prevBodyStyle = {
+      position: bodyEl.style.position,
+      top: bodyEl.style.top,
+      left: bodyEl.style.left,
+      right: bodyEl.style.right,
+      width: bodyEl.style.width,
+      overflow: bodyEl.style.overflow,
+      paddingRight: bodyEl.style.paddingRight
+    };
+
+    htmlEl.classList.add('modal-scroll-locked');
+    bodyEl.classList.add('modal-scroll-locked');
+
+    bodyEl.style.position = 'fixed';
+    bodyEl.style.top = `-${scrollY}px`;
+    bodyEl.style.left = `-${scrollX}px`;
+    bodyEl.style.right = '0';
+    bodyEl.style.width = '100%';
+    bodyEl.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      bodyEl.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) return; // Allow pinch gestures
+      const target = e.target as HTMLElement | null;
+      const scrollContainer = target?.closest?.('[data-modal-scroll-container="true"]') as HTMLElement | null;
+
+      if (!scrollContainer) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight <= clientHeight) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY;
+      const isAtTop = scrollTop <= 0 && deltaY > 0;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1 && deltaY < 0;
+
+      if ((isAtTop || isAtBottom) && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      const scrollContainer = target?.closest?.('[data-modal-scroll-container="true"]') as HTMLElement | null;
+
+      if (!scrollContainer) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight <= clientHeight) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+
+      const isAtTop = scrollTop <= 0 && e.deltaY < 0;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0;
+
+      if ((isAtTop || isAtBottom) && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('wheel', handleWheel);
+
+      htmlEl.classList.remove('modal-scroll-locked');
+      bodyEl.classList.remove('modal-scroll-locked');
+
+      bodyEl.style.position = prevBodyStyle.position;
+      bodyEl.style.top = prevBodyStyle.top;
+      bodyEl.style.left = prevBodyStyle.left;
+      bodyEl.style.right = prevBodyStyle.right;
+      bodyEl.style.width = prevBodyStyle.width;
+      bodyEl.style.overflow = prevBodyStyle.overflow;
+      bodyEl.style.paddingRight = prevBodyStyle.paddingRight;
+
+      window.scrollTo(scrollPosRef.current.x, scrollPosRef.current.y);
+    };
+  }, [isLocked]);
+}
+
+// REUSABLE PORTAL DROPDOWN MENU (Escapes overflow:hidden ancestors & auto-flips/clamps within viewport)
+interface PortalDropdownMenuProps {
+  isOpen: boolean;
+  triggerRef: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  id?: string;
+  ariaLabel?: string;
+  className?: string;
+  children: React.ReactNode;
+}
+
+const PortalDropdownMenu: React.FC<PortalDropdownMenuProps> = ({
+  isOpen,
+  triggerRef,
+  onClose,
+  id,
+  ariaLabel,
+  className = '',
+  children
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    minWidth: number;
+    maxHeight: number;
+  }>({
+    top: -9999,
+    left: -9999,
+    minWidth: 140,
+    maxHeight: 320
+  });
+
+  const updatePosition = useCallback(() => {
+    const triggerEl = triggerRef.current;
+    if (!triggerEl || typeof window === 'undefined') return;
+
+    const rect = triggerEl.getBoundingClientRect();
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const vh = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+    const margin = 8;
+    const offset = 6;
+
+    const menuEl = menuRef.current;
+    const measuredHeight = menuEl ? menuEl.scrollHeight : 172;
+    const measuredWidth = Math.max(rect.width, menuEl ? menuEl.offsetWidth : 140, 140);
+
+    const spaceBelow = vh - rect.bottom - margin - offset;
+    const spaceAbove = rect.top - margin - offset;
+
+    let top = rect.bottom + offset;
+    let maxHeight = Math.max(140, spaceBelow);
+
+    if (spaceBelow < measuredHeight && spaceAbove > spaceBelow) {
+      maxHeight = Math.max(140, spaceAbove);
+      const effectiveHeight = Math.min(measuredHeight, maxHeight);
+      top = Math.max(margin, rect.top - effectiveHeight - offset);
+    } else {
+      top = Math.min(rect.bottom + offset, Math.max(margin, vh - Math.min(measuredHeight, maxHeight) - margin));
+    }
+
+    const left = Math.min(
+      Math.max(margin, rect.left),
+      Math.max(margin, vw - measuredWidth - margin)
+    );
+
+    setCoords({
+      top,
+      left,
+      minWidth: Math.max(rect.width, 140),
+      maxHeight
+    });
+  }, [triggerRef]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.visualViewport?.addEventListener('resize', handleScrollOrResize);
+    window.visualViewport?.addEventListener('scroll', handleScrollOrResize);
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.visualViewport?.removeEventListener('resize', handleScrollOrResize);
+      window.visualViewport?.removeEventListener('scroll', handleScrollOrResize);
+    };
+  }, [isOpen, updatePosition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDownOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      onClose();
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('touchstart', handlePointerDownOutside);
+    };
+  }, [isOpen, onClose, triggerRef]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      id={id}
+      role="listbox"
+      aria-label={ariaLabel}
+      className={className}
+      style={{
+        position: 'fixed',
+        top: `${coords.top}px`,
+        left: `${coords.left}px`,
+        minWidth: `${coords.minWidth}px`,
+        maxHeight: `${coords.maxHeight}px`,
+        overflowY: 'auto',
+        zIndex: 9999
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+};
+
 export default function App() {
   // Ticker pause state
   const [tickerPaused, setTickerPaused] = useState(false);
 
   // Mobile navigation drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileHeaderRef = useRef<HTMLElement>(null);
 
   // Active Category in Hero
   const [activeCategory, setActiveCategory] = useState<string>('dish-photos');
@@ -777,21 +1040,28 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Close media dropdown on outside click
+  // Close mobile navigation dropdown on outside click
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (mediaDropdownRef.current && !mediaDropdownRef.current.contains(e.target as Node)) {
-        setMediaDropdownOpen(false);
+    if (!mobileMenuOpen) return;
+    const handleOutsideHeaderClick = (e: MouseEvent | TouchEvent) => {
+      if (mobileHeaderRef.current && !mobileHeaderRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
       }
     };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
-  }, []);
+    document.addEventListener('mousedown', handleOutsideHeaderClick);
+    document.addEventListener('touchstart', handleOutsideHeaderClick, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideHeaderClick);
+      document.removeEventListener('touchstart', handleOutsideHeaderClick);
+    };
+  }, [mobileMenuOpen]);
 
-  // Escape key closes modals
+  // Escape key closes modals and dropdowns
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        setMediaDropdownOpen(false);
+        setMobileMenuOpen(false);
         setFaqModalOpen(false);
         setContactModalOpen(false);
         setLoginModalOpen(false);
@@ -806,6 +1076,8 @@ export default function App() {
   // Listen for hash changes to navigate between Home, Packages, and About
   useEffect(() => {
     const handleHashChange = () => {
+      setMediaDropdownOpen(false);
+      setMobileMenuOpen(false);
       if (window.location.hash === '#packages') {
         setCurrentRoute('packages');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -831,18 +1103,10 @@ export default function App() {
     }
   }, [currentRoute]);
 
-  // Prevent background website scrolling when modal is open
-  useEffect(() => {
-    const isAnyModalOpen = loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen;
-    if (isAnyModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [loginModalOpen, faqModalOpen, contactModalOpen, selectedModalDish, cartDrawerOpen]);
+  // Reusable modal background scroll lock across all modals and slide-over drawers
+  const isAnyModalOpen =
+    loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen;
+  useModalScrollLock(isAnyModalOpen);
 
   // Cuisine scroll sync
   const scrollCuisine = (direction: 'left' | 'right') => {
@@ -1178,7 +1442,7 @@ export default function App() {
       </section>
 
       {/* 2. BLACK FOODBLIZ NAVIGATION HEADER (Home, About Us, Packages, Contact Us modal trigger, Faqs modal trigger) */}
-      <header className="w-full bg-black text-white relative border-b border-red-700/80 shadow-md">
+      <header ref={mobileHeaderRef} className="w-full bg-black text-white relative z-40 border-b border-red-700/80 shadow-md">
         {/* MOBILE HEADER (md:hidden): Clean 3-section layout [ Hamburger ] [ Centered Foodbliz Logo ] [ Cart ] [ LOG IN ] */}
         <div className="flex md:hidden items-center justify-between px-3 py-2.5 min-h-[64px] relative bg-black">
           {/* 1. Left: Hamburger Button */}
@@ -1774,37 +2038,37 @@ export default function App() {
                   </svg>
                 </button>
 
-                {/* Dropdown Menu - all four options restored */}
-                {mediaDropdownOpen && (
-                  <div
-                    aria-label="Media selection dropdown"
-                    role="listbox"
-                    className="absolute left-0 mt-2 w-40 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-100"
-                  >
-                    {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
-                      <div
-                        key={type}
-                        role="option"
-                        aria-selected={selectedMediaType === type}
-                        tabIndex={0}
-                        className={`w-full px-4 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between cursor-pointer transition-colors ${
-                          selectedMediaType === type ? 'bg-red-50 text-[#E50914]' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                        onClick={() => {
-                          setSelectedMediaType(type);
-                          setMediaDropdownOpen(false);
-                        }}
-                      >
-                        <span>{type}</span>
-                        {selectedMediaType === type && (
-                          <svg className="w-3.5 h-3.5 text-[#E50914]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Dropdown Menu - rendered via Portal outside clipping containers with automatic viewport positioning */}
+                <PortalDropdownMenu
+                  isOpen={mediaDropdownOpen}
+                  triggerRef={mediaDropdownRef}
+                  onClose={() => setMediaDropdownOpen(false)}
+                  ariaLabel="Media selection dropdown"
+                  className="w-40 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 text-left animate-in fade-in zoom-in-95 duration-100"
+                >
+                  {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
+                    <div
+                      key={type}
+                      role="option"
+                      aria-selected={selectedMediaType === type}
+                      tabIndex={0}
+                      className={`w-full px-4 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                        selectedMediaType === type ? 'bg-red-50 text-[#E50914]' : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => {
+                        setSelectedMediaType(type);
+                        setMediaDropdownOpen(false);
+                      }}
+                    >
+                      <span>{type}</span>
+                      {selectedMediaType === type && (
+                        <svg className="w-3.5 h-3.5 text-[#E50914]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      )}
+                    </div>
+                  ))}
+                </PortalDropdownMenu>
               </div>
 
               {/* Search Bar Input Container extending across full remaining width */}
@@ -1821,7 +2085,7 @@ export default function App() {
                     }
                   }}
                   placeholder="Search for photos, dishes, cuisines..."
-                  className="w-full h-11 xs:h-12 sm:h-[48px] bg-white rounded-xl shadow-sm border border-gray-200 pl-3.5 xs:pl-4 pr-11 xs:pr-12 text-xs xs:text-sm text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:border-red-500 transition-colors"
+                  className="w-full h-11 xs:h-12 sm:h-[48px] bg-white rounded-xl shadow-sm border border-gray-200 pl-3.5 xs:pl-4 pr-11 xs:pr-12 text-[16px] sm:text-sm text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:border-red-500 transition-colors"
                 />
                 <button
                   type="button"
@@ -1938,326 +2202,831 @@ export default function App() {
         </main>
       ) : (
         <main className="w-full">
-          {/* 3. CLEAN HERO SECTION */}
+          {/* 3. DIWALI HERO SECTION — EXACT REPLICA + CONTINUOUS FESTIVE ANIMATIONS */}
           <section
-        id="about"
-        className="relative w-full bg-cover bg-center flex flex-col justify-center items-center px-4 sm:px-8 lg:px-12 shadow-md py-6 sm:py-10 md:py-12 lg:py-14 min-h-[320px] sm:min-h-[380px] md:min-h-[420px]"
-        style={{
-          backgroundImage:
-            "url('https://lh3.googleusercontent.com/aida/AEtjO1Utm3-QqN4AzFKA83VSwmUf9vVfSTlphOzog1GWJDpoKnlSuLaAS3JsmPWSw2iw_Z27W7IKoaGl_wujvgdvHLUrcwCr1HGAKJ1lKZb6hQO0a7f2PSqsFQIGtcQcLuli3lmdC28yTmkUIjZADBH7W0HZ3O8e7UKedAJBUcaox81gJrizjkmQBZGbHQMZVlhtuJyD5tRDOr5etUpvyf9HMFLu1l2td7wLxQl7zrtjxbwN-UwILTYbJOmfcuw')"
-        }}
-      >
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-stone-50/70 to-transparent"></div>
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 68% 68% at center, rgba(248, 246, 242, 0.88) 0%, rgba(248, 246, 242, 0.65) 55%, rgba(248, 246, 242, 0) 80%)'
-          }}
-        ></div>
-
-        <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto flex flex-col items-center text-center">
-          <h1 className="hero-headline text-[18px] xs:text-[21px] sm:text-3xl md:text-5xl lg:text-[54px] font-black text-gray-900 tracking-tight text-center leading-tight max-w-full px-2">
-            {/* Mobile (strictly TWO lines as requested) */}
-            <span className="sm:hidden block">
-              <span className="block leading-tight">Professional <span className="text-[#e2242b]">Food Visuals</span></span>
-              <span className="block leading-tight text-[15px] min-[360px]:text-[17px] min-[400px]:text-[19px] whitespace-nowrap">That Make Your Food Irresistible</span>
-            </span>
-            {/* Desktop / Tablet */}
-            <span className="hidden sm:inline">
-              Professional <span className="text-[#e2242b]">Food Visuals</span>
-              <br className="hidden sm:inline" /> That Make Your Food Irresistible
-            </span>
-          </h1>
-          <p className="text-gray-700 text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-medium text-center mt-2 sm:mt-3 max-w-3xl lg:max-w-4xl mx-auto px-2">
-            High-quality food photos for restaurants, menus, delivery apps and social media.
-          </p>
-
-          {/* Category Tabs Navigation - Scaled and spaced naturally across desktop width */}
-          <div className="w-full max-w-5xl lg:max-w-6xl mx-auto flex items-center justify-start sm:justify-center overflow-x-auto touch-pan-x pb-2 pt-1 gap-4 sm:gap-8 md:gap-11 lg:gap-14 xl:gap-16 text-neutral-800 scrollbar-none select-none mt-3.5 sm:mt-4 md:mt-5 mb-3.5 sm:mb-5 md:mb-6 hero-category-nav-wrap px-2 sm:px-4 flex-nowrap" id="hero-category-nav">
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'dish-photos' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('dish-photos');
-                setSearchQuery('');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8Z"></path>
-                <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"></path>
-                <path d="m2.1 21.9 6.4-6.4"></path>
-                <path d="m19 5-7 7"></path>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">
-                <span className="sm:hidden">Photos</span>
-                <span className="hidden sm:inline">Dish Photos</span>
-              </span>
-            </button>
-
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'beverages' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('beverages');
-                handleTagClick('Beverages');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
-                <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
-                <line x1="6" x2="6" y1="2" y2="4"></line>
-                <line x1="10" x2="10" y1="2" y2="4"></line>
-                <line x1="14" x2="14" y1="2" y2="4"></line>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">Beverages</span>
-            </button>
-
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'food-menus' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('food-menus');
-                setSearchQuery('');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M12 4v3"></path>
-                <path d="M4 18h16a1 1 0 0 0 1-1A9 9 0 0 0 3 17a1 1 0 0 0 1 1Z"></path>
-                <path d="M2 20h20"></path>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">Food Menus</span>
-            </button>
-
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'chef-specials' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('chef-specials');
-                handleTagClick('North Indian');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M6 18h12v3H6z"></path>
-                <path d="M6 14a4 4 0 0 1-2-7.5A4 4 0 0 1 12 5a4 4 0 0 1 8 1.5A4 4 0 0 1 18 14Z"></path>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">Chef Specials</span>
-            </button>
-
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'desserts' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('desserts');
-                handleTagClick('Desserts');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h-2V5.73A2 2 0 0 1 12 2Z"></path>
-                <path d="M4 11a8 8 0 0 1 16 0H4Z"></path>
-                <path d="m5 11 1.5 9h11l1.5-9"></path>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">Desserts</span>
-            </button>
-
-            {/* 6th Category: Pizza & Burgers - Accessible on both mobile and desktop/tablet via horizontal scroll */}
-            <button
-              className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1 sm:px-2 md:px-3 pb-1.5 sm:pb-2.5 font-medium border-b-2 transition-colors shrink-0 ${
-                activeCategory === 'pizza-burgers' ? 'text-[#e2242b] border-[#e2242b] font-bold' : 'text-neutral-800 border-transparent hover:text-[#e2242b]'
-              }`}
-              type="button"
-              onClick={() => {
-                setActiveCategory('pizza-burgers');
-                handleTagClick('Pizza');
-              }}
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-6.5 lg:h-6.5 mb-1 sm:mb-1.5 md:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="m12 2 9 17H3L12 2Z"></path>
-                <circle cx="12" cy="12" r="1.5"></circle>
-                <circle cx="9" cy="15" r="1"></circle>
-                <circle cx="14" cy="16" r="1"></circle>
-              </svg>
-              <span className="text-[11px] sm:text-[13px] md:text-sm lg:text-[15px] whitespace-nowrap">Pizza &amp; Burgers</span>
-            </button>
-          </div>
-
-          {/* Search Bar & Trending Wrapper: Photos dropdown on left, search bar & trending row stacked on right */}
-          <div className="w-full mx-auto max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl">
-            <div className="w-full flex items-start gap-1.5 xs:gap-2 md:gap-2.5 relative z-30" id="hero-search-container">
-              {/* Photos Selector Box (Left Column) */}
-              <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
-                <button
-                  aria-expanded={mediaDropdownOpen}
-                  aria-haspopup="listbox"
-                  className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] bg-white rounded-xl shadow-lg shadow-black/10 border border-gray-200 hover:bg-gray-50 px-2.5 xs:px-4 md:px-5 flex items-center gap-1.5 xs:gap-2 md:gap-2.5 text-gray-800 text-xs xs:text-sm md:text-base font-semibold transition-colors focus:outline-none cursor-pointer shrink-0"
-                  id="hero-media-dropdown-btn"
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMediaDropdownOpen(!mediaDropdownOpen);
-                  }}
-                >
-                  <span className="flex items-center gap-1.5 xs:gap-2">
-                    <span className="flex items-center" id="search-dropdown-icon">
-                      {selectedMediaType === 'Photos' && (
-                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"></path>
-                          <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round"></path>
-                        </svg>
-                      )}
-                      {(selectedMediaType === 'Videos' || selectedMediaType === 'Video') && (
-                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                          <rect height="14" rx="2" ry="2" width="15" x="1" y="5"></rect>
-                        </svg>
-                      )}
-                      {(selectedMediaType === 'Banners' || selectedMediaType === 'Banner') && (
-                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <rect height="16" rx="2" width="20" x="2" y="4"></rect>
-                          <line x1="2" x2="22" y1="10" y2="10"></line>
-                        </svg>
-                      )}
-                      {(selectedMediaType === 'Templates' || selectedMediaType === 'Template') && (
-                        <svg className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <rect height="18" rx="2" width="18" x="3" y="3"></rect>
-                          <line x1="3" x2="21" y1="9" y2="9"></line>
-                          <line x1="9" x2="9" y1="21" y2="9"></line>
-                        </svg>
-                      )}
-                    </span>
-                    <span id="search-dropdown-selected-label">{selectedMediaType}</span>
-                  </span>
-                  <svg
-                    className={`w-3.5 h-3.5 text-neutral-500 transition-transform duration-200 ${mediaDropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    id="search-dropdown-arrow"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
-                  </svg>
-                </button>
-
-                {/* Compact, elegant Foodbliz style dropdown matching button width */}
-                {mediaDropdownOpen && (
-                  <div className="absolute left-0 top-full mt-1.5 w-full bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-[100]" id="search-dropdown-menu" role="listbox">
-                    {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
-                      <button
-                        key={type}
-                        className={`search-dropdown-item w-full px-3 py-2 text-left text-xs sm:text-sm font-medium transition-colors flex items-center justify-between cursor-pointer ${
-                          selectedMediaType === type ? 'text-[#e2242b] font-semibold bg-red-50/60' : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
-                        }`}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMediaType(type);
-                          setMediaDropdownOpen(false);
-                        }}
-                      >
-                        <span className="truncate">{type}</span>
-                        {selectedMediaType === type && (
-                          <svg className="w-3.5 h-3.5 text-[#e2242b] shrink-0 ml-1.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
-                          </svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column: Search Bar & Trending Row */}
-              <div className="flex-1 min-w-0 flex flex-col">
-                {/* Search Input & Button Box */}
-                <div className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] w-full bg-white rounded-xl shadow-lg shadow-black/10 flex items-center border border-gray-200 overflow-hidden pl-2.5 xs:pl-4 md:pl-5 pr-1 sm:pr-1.5 md:pr-2">
-                  <input
-                    ref={searchInputRef}
-                    className="w-full h-full py-0 text-xs xs:text-sm md:text-base text-gray-800 placeholder-neutral-400 bg-transparent border-0 focus:outline-none focus:ring-0 min-w-0"
-                    placeholder="Search for photos"
-                    type="text"
-                    id="main-search-input"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && dishesGridRef.current) {
-                        dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            id="about"
+            className="relative w-full overflow-hidden flex flex-col justify-start md:justify-center items-center px-3.5 sm:px-6 lg:px-8 pt-[46vw] min-[390px]:pt-[47vw] sm:pt-[38vw] pb-9 min-[390px]:pb-10 sm:pb-11 md:py-5 lg:py-6 min-h-[390px] sm:min-h-[420px] md:min-h-[395px] lg:min-h-[420px] xl:min-h-[435px] lg:aspect-[1347/381]"
+            style={{
+              background: 'linear-gradient(180deg, #27053a 0%, #4d0d52 38%, #630b4c 68%, #770b4e 100%)'
+            }}
+          >
+            {/* Shared Coordinate-Locked Diwali Decorative Scene Render Helper (Desktop Full-Bleed + Mobile Upper Festive Stage) */}
+            {(['desktop', 'mobile-left', 'mobile-right'] as const).map((viewportMode) => (
+              <div
+                key={viewportMode}
+                aria-hidden="true"
+                className={
+                  viewportMode === 'desktop'
+                    ? 'hidden md:block absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden'
+                    : viewportMode === 'mobile-left'
+                    ? 'block md:hidden absolute top-0 left-0 w-[212%] sm:w-[175%] aspect-[1347/381] pointer-events-none select-none z-0 overflow-hidden'
+                    : 'block md:hidden absolute top-0 right-0 w-[212%] sm:w-[175%] aspect-[1347/381] pointer-events-none select-none z-0 overflow-hidden'
+                }
+                style={
+                  viewportMode === 'mobile-left'
+                    ? {
+                        WebkitMaskImage:
+                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(90deg, #000 0%, #000 22%, transparent 26.5%)',
+                        WebkitMaskComposite: 'source-in',
+                        maskImage:
+                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(90deg, #000 0%, #000 22%, transparent 26.5%)',
+                        maskComposite: 'intersect'
                       }
+                    : viewportMode === 'mobile-right'
+                    ? {
+                        WebkitMaskImage:
+                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(270deg, #000 0%, #000 23%, transparent 27.5%)',
+                        WebkitMaskComposite: 'source-in',
+                        maskImage:
+                          'linear-gradient(180deg, #000 0%, #000 78%, transparent 93%), linear-gradient(270deg, #000 0%, #000 23%, transparent 27.5%)',
+                        maskComposite: 'intersect'
+                      }
+                    : undefined
+                }
+              >
+                {/* Base High-Resolution Diwali Hero Artwork */}
+                <img
+                  src="/assets/aistudio/diwali-hero-bg.png"
+                  alt=""
+                  className="w-full h-full object-fill block select-none pointer-events-none"
+                />
+
+                {/* A. DECORATIVE STRING LIGHTS — Soft, Steady Warm Glow with Minimal Independent Twinkle */}
+                {[
+                  // Left string bulbs
+                  { xp: 1.32, yp: 5.43, dur: '5.4s', delay: '-0.7s' },
+                  { xp: 4.46, yp: 8.73, dur: '6.8s', delay: '-3.1s' },
+                  { xp: 7.41, yp: 10.14, dur: '4.9s', delay: '-1.8s' },
+                  { xp: 10.34, yp: 9.89, dur: '7.5s', delay: '-4.6s' },
+                  { xp: 13.26, yp: 7.74, dur: '5.9s', delay: '-2.3s' },
+                  { xp: 15.86, yp: 4.35, dur: '7.1s', delay: '-5.2s' },
+                  { xp: 18.26, yp: 0.45, dur: '6.2s', delay: '-1.2s' },
+                  // Right string bulbs
+                  { xp: 82.55, yp: 0.45, dur: '6.4s', delay: '-3.7s' },
+                  { xp: 84.94, yp: 4.42, dur: '5.1s', delay: '-0.9s' },
+                  { xp: 87.59, yp: 7.88, dur: '7.3s', delay: '-4.9s' },
+                  { xp: 90.44, yp: 9.87, dur: '5.7s', delay: '-2.1s' },
+                  { xp: 93.37, yp: 10.02, dur: '8.1s', delay: '-6.0s' },
+                  { xp: 96.05, yp: 8.53, dur: '6.0s', delay: '-2.8s' },
+                  { xp: 98.83, yp: 5.15, dur: '6.9s', delay: '-1.5s' }
+                ].map((bulb, idx) => (
+                  <span
+                    key={`str-bulb-${idx}`}
+                    className="diwali-anim-node absolute rounded-full pointer-events-none"
+                    style={{
+                      left: `${bulb.xp}%`,
+                      top: `${bulb.yp}%`,
+                      width: '0.85%',
+                      aspectRatio: '1 / 1',
+                      background: 'radial-gradient(circle, rgba(255, 244, 185, 0.5) 0%, rgba(255, 198, 75, 0.25) 55%, rgba(255, 165, 30, 0) 100%)',
+                      mixBlendMode: 'screen',
+                      animation: `diwaliBulbFlicker ${bulb.dur} ease-in-out ${bulb.delay} infinite`
                     }}
                   />
-                  <button
-                    aria-label="Search"
-                    className="h-[34px] w-[34px] xs:h-[38px] xs:w-[38px] sm:h-10 sm:w-10 md:h-[42px] md:w-[42px] bg-[#e2242b] hover:bg-[#c81e24] text-white rounded-lg flex items-center justify-center transition-colors focus:outline-none cursor-pointer shrink-0"
-                    type="button"
-                    onClick={() => {
-                      if (dishesGridRef.current) {
-                        dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
+                ))}
+
+                {/* B. FIREWORKS & CRACKERS — Launching Rocket Trail + Radial Burst + Fading Sparkles */}
+                {[
+                  { xp: 5.05, yp: 20.5, size: 4.3, dur: '4.6s', delay: '-1.0s' },
+                  { xp: 18.86, yp: 12.2, size: 4.6, dur: '5.3s', delay: '-2.9s' },
+                  { xp: 76.24, yp: 10.5, size: 6.7, dur: '4.4s', delay: '-0.9s' },
+                  { xp: 11.4, yp: 7.2, size: 3.4, dur: '6.1s', delay: '-4.1s' },
+                  { xp: 89.0, yp: 17.8, size: 3.9, dur: '5.7s', delay: '-2.3s' }
+                ].map((fw, idx) => (
+                  <div
+                    key={`fw-${idx}`}
+                    className="diwali-anim-node absolute pointer-events-none"
+                    style={{
+                      left: `${fw.xp}%`,
+                      top: `${fw.yp}%`,
+                      width: `${fw.size}%`,
+                      aspectRatio: '90 / 80'
                     }}
                   >
-                    <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 stroke-current fill-none stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                  </button>
+                    {/* Rocket Launch Streak */}
+                    <span
+                      className="diwali-anim-node absolute left-1/2 top-1/2 w-[2px] h-[34px] rounded-full pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(180deg, #fffbe6 0%, #ffb703 45%, rgba(255, 100, 0, 0) 100%)',
+                        boxShadow: '0 0 6px rgba(255, 200, 60, 0.9)',
+                        animation: `diwaliRocketLaunch ${fw.dur} ease-out ${fw.delay} infinite`
+                      }}
+                    />
+                    {/* Radial Firework Burst Sprite */}
+                    <img
+                      src="/assets/aistudio/diwali-firework-lg.png"
+                      alt=""
+                      className="diwali-anim-node absolute left-1/2 top-1/2 w-full h-full object-contain pointer-events-none"
+                      style={{
+                        mixBlendMode: 'screen',
+                        animation: `diwaliFireworkBurst ${fw.dur} cubic-bezier(0.16, 1, 0.3, 1) ${fw.delay} infinite`
+                      }}
+                    />
+                    {/* Sparkling Fading Particles */}
+                    {[
+                      { dx: '18px', dy: '-16px' },
+                      { dx: '-18px', dy: '-14px' },
+                      { dx: '22px', dy: '4px' },
+                      { dx: '-21px', dy: '6px' },
+                      { dx: '12px', dy: '18px' },
+                      { dx: '-13px', dy: '17px' },
+                      { dx: '0px', dy: '-22px' },
+                      { dx: '2px', dy: '21px' }
+                    ].map((sp, sIdx) => (
+                      <span
+                        key={`sp-${sIdx}`}
+                        className="diwali-anim-node absolute left-1/2 top-1/2 w-[3.5px] h-[3.5px] rounded-full pointer-events-none"
+                        style={{
+                          background: sIdx % 2 === 0 ? '#fff6b3' : '#ff99c8',
+                          boxShadow: '0 0 5px #ffd166',
+                          ['--dx' as string]: sp.dx,
+                          ['--dy' as string]: sp.dy,
+                          animation: `diwaliSparkleDrift ${fw.dur} ease-out ${fw.delay} infinite`
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+
+                {/* C. FLOATING SKY LANTERNS — Gentle Ascent, Sway, Inner Light Flicker & Seamless Loop */}
+                {[
+                  { left: 22.05, top: 4.2, width: 4.35, dur: '9.8s', delay: '-2.8s', flickDur: '2.1s', opacity: 1 },
+                  { left: 21.45, top: 24.4, width: 3.42, dur: '11.4s', delay: '-5.6s', flickDur: '1.85s', opacity: 0.96 },
+                  { left: 81.85, top: 13.0, width: 4.25, dur: '10.6s', delay: '-3.9s', flickDur: '2.35s', opacity: 1 },
+                  { left: 25.1, top: 15.8, width: 2.35, dur: '12.8s', delay: '-8.4s', flickDur: '2.0s', opacity: 0.72 },
+                  { left: 78.0, top: 21.5, width: 2.55, dur: '12.1s', delay: '-7.1s', flickDur: '2.45s', opacity: 0.78 }
+                ].map((lantern, idx) => (
+                  <div
+                    key={`lantern-${idx}`}
+                    className="diwali-anim-node absolute pointer-events-none"
+                    style={{
+                      left: `${lantern.left}%`,
+                      top: `${lantern.top}%`,
+                      width: `${lantern.width}%`,
+                      aspectRatio: '60 / 66',
+                      opacity: lantern.opacity,
+                      animation: `diwaliLanternFloat ${lantern.dur} ease-in-out ${lantern.delay} infinite`
+                    }}
+                  >
+                    <img
+                      src="/assets/aistudio/diwali-lantern.png"
+                      alt=""
+                      className="w-full h-full object-contain block"
+                    />
+                    {/* Soft Flickering Internal Lantern Flame Glow */}
+                    <span
+                      className="diwali-anim-node absolute left-1/2 top-[68%] w-[68%] h-[52%] rounded-full pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(255, 252, 210, 0.95) 0%, rgba(255, 180, 40, 0.65) 50%, rgba(255, 120, 0, 0) 100%)',
+                        mixBlendMode: 'screen',
+                        animation: `diwaliLanternInnerGlow ${lantern.flickDur} ease-in-out ${lantern.delay} infinite`
+                      }}
+                    />
+                  </div>
+                ))}
+
+                {/* D. HAPPY DIWALI CIRCULAR ARTWORK — Golden Star & Sparkle Outline + Occasional Tiny Glitter + Blooming Greeting */}
+                <div
+                  className="diwali-anim-node absolute pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: '12.91%',
+                    top: '38.35%',
+                    width: '13.86%',
+                    height: '49.0%'
+                  }}
+                >
+                  {/* 1. Golden Star & Sparkle Outline — Gently Twinkling Golden Stars Around the Circular Arc */}
+                  {[
+                    { angle: 142, r: 49.8, size: '8.2%', dur: '3.2s', delay: '-0.5s' },
+                    { angle: 158, r: 50.0, size: '6.8%', dur: '4.1s', delay: '-2.1s' },
+                    { angle: 174, r: 50.0, size: '8.8%', dur: '3.6s', delay: '-1.3s' },
+                    { angle: -170, r: 50.0, size: '7.0%', dur: '4.4s', delay: '-3.0s' },
+                    { angle: -154, r: 49.8, size: '8.5%', dur: '3.0s', delay: '-0.9s' },
+                    { angle: -138, r: 50.0, size: '6.6%', dur: '3.9s', delay: '-2.5s' },
+                    { angle: -122, r: 50.0, size: '9.0%', dur: '3.4s', delay: '-1.7s' },
+                    { angle: -106, r: 49.9, size: '7.2%', dur: '4.2s', delay: '-3.4s' },
+                    { angle: -90, r: 50.0, size: '9.4%', dur: '3.1s', delay: '-0.3s' },
+                    { angle: -74, r: 49.9, size: '7.2%', dur: '3.8s', delay: '-2.2s' },
+                    { angle: -58, r: 50.0, size: '8.8%', dur: '3.5s', delay: '-1.1s' },
+                    { angle: -42, r: 50.0, size: '6.8%', dur: '4.3s', delay: '-2.8s' },
+                    { angle: -26, r: 49.8, size: '8.5%', dur: '3.3s', delay: '-0.7s' },
+                    { angle: -10, r: 50.0, size: '7.0%', dur: '4.0s', delay: '-1.9s' },
+                    { angle: 6, r: 50.0, size: '8.8%', dur: '3.7s', delay: '-3.2s' },
+                    { angle: 22, r: 50.0, size: '6.8%', dur: '3.2s', delay: '-1.5s' },
+                    { angle: 38, r: 49.8, size: '8.2%', dur: '4.1s', delay: '-2.6s' }
+                  ].map((star, idx) => {
+                    const rad = (star.angle * Math.PI) / 180;
+                    const cx = 50 + star.r * Math.cos(rad);
+                    const cy = 50 + star.r * Math.sin(rad);
+                    return (
+                      <svg
+                        key={`circle-star-${idx}`}
+                        viewBox="0 0 24 24"
+                        className="diwali-anim-node absolute pointer-events-none"
+                        style={{
+                          left: `${cx.toFixed(2)}%`,
+                          top: `${cy.toFixed(2)}%`,
+                          width: star.size,
+                          aspectRatio: '1 / 1',
+                          filter: 'drop-shadow(0 0 4px rgba(255, 215, 95, 0.9))',
+                          mixBlendMode: 'screen',
+                          animation: `diwaliStarTwinkle ${star.dur} ease-in-out ${star.delay} infinite`
+                        }}
+                      >
+                        <path
+                          d="M12 0 C12.7 8.4 15.6 11.3 24 12 C15.6 12.7 12.7 15.6 12 24 C11.3 15.6 8.4 12.7 0 12 C8.4 11.3 11.3 8.4 12 0 Z"
+                          fill="#ffe885"
+                        />
+                        <circle cx="12" cy="12" r="2.2" fill="#fffdf2" />
+                      </svg>
+                    );
+                  })}
+
+                  {/* 2. Occasional Tiny Glitter Particles That Appear and Disappear Naturally */}
+                  {[
+                    { angle: 149, r: 48.6, size: '1.9%', dur: '2.6s', delay: '-0.4s', gx: '-2px', gy: '2px' },
+                    { angle: 166, r: 51.4, size: '1.7%', dur: '3.3s', delay: '-1.8s', gx: '-3px', gy: '1px' },
+                    { angle: -178, r: 48.8, size: '2.0%', dur: '2.9s', delay: '-1.1s', gx: '-3px', gy: '-1px' },
+                    { angle: -162, r: 51.2, size: '1.8%', dur: '3.6s', delay: '-2.7s', gx: '-2px', gy: '-2px' },
+                    { angle: -146, r: 48.5, size: '1.9%', dur: '2.4s', delay: '-0.8s', gx: '-2px', gy: '-3px' },
+                    { angle: -130, r: 51.3, size: '1.7%', dur: '3.1s', delay: '-2.2s', gx: '-1px', gy: '-3px' },
+                    { angle: -114, r: 48.7, size: '2.0%', dur: '2.7s', delay: '-1.4s', gx: '0px', gy: '-3px' },
+                    { angle: -98, r: 51.2, size: '1.8%', dur: '3.5s', delay: '-2.9s', gx: '1px', gy: '-3px' },
+                    { angle: -82, r: 48.6, size: '1.9%', dur: '2.5s', delay: '-0.6s', gx: '1px', gy: '-3px' },
+                    { angle: -66, r: 51.4, size: '1.7%', dur: '3.2s', delay: '-1.9s', gx: '2px', gy: '-3px' },
+                    { angle: -50, r: 48.8, size: '2.0%', dur: '2.8s', delay: '-1.2s', gx: '3px', gy: '-2px' },
+                    { angle: -34, r: 51.2, size: '1.8%', dur: '3.4s', delay: '-2.5s', gx: '3px', gy: '-1px' },
+                    { angle: -18, r: 48.6, size: '1.9%', dur: '2.6s', delay: '-0.9s', gx: '3px', gy: '1px' },
+                    { angle: -2, r: 51.3, size: '1.7%', dur: '3.7s', delay: '-3.1s', gx: '3px', gy: '2px' },
+                    { angle: 14, r: 48.7, size: '2.0%', dur: '2.9s', delay: '-1.6s', gx: '2px', gy: '2px' },
+                    { angle: 30, r: 51.1, size: '1.8%', dur: '3.3s', delay: '-2.3s', gx: '2px', gy: '3px' }
+                  ].map((glit, idx) => {
+                    const rad = (glit.angle * Math.PI) / 180;
+                    const gxPos = 50 + glit.r * Math.cos(rad);
+                    const gyPos = 50 + glit.r * Math.sin(rad);
+                    return (
+                      <span
+                        key={`circle-glitter-${idx}`}
+                        className="diwali-anim-node absolute rounded-full pointer-events-none"
+                        style={{
+                          left: `${gxPos.toFixed(2)}%`,
+                          top: `${gyPos.toFixed(2)}%`,
+                          width: glit.size,
+                          aspectRatio: '1 / 1',
+                          background: idx % 2 === 0 ? '#fffbe6' : '#ffd966',
+                          boxShadow: '0 0 4px #ffe066',
+                          ['--gx' as string]: glit.gx,
+                          ['--gy' as string]: glit.gy,
+                          mixBlendMode: 'screen',
+                          animation: `diwaliGlitterPop ${glit.dur} ease-in-out ${glit.delay} infinite`
+                        }}
+                      />
+                    );
+                  })}
                 </div>
 
-                {/* Trending Keywords Row - Continuous Auto-Scrolling Marquee directly below search bar */}
+                {/* Happy Diwali Lettering Blooming / Revealing & Pulsing Glow Overlay */}
+                <img
+                  src="/assets/aistudio/happy-diwali-text.png"
+                  alt=""
+                  className="diwali-anim-node absolute pointer-events-none object-contain"
+                  style={{
+                    left: '7.127%',
+                    top: '14.173%',
+                    width: '11.73%',
+                    height: '31.496%',
+                    mixBlendMode: 'screen',
+                    animation: 'diwaliGreetingBloom 4.8s ease-in-out infinite'
+                  }}
+                />
+
+                {/* E. DIYAS — Natural Flickering Flames, Warm Light Glow & Floor Reflection Shimmer */}
+                {[
+                  // Diya 1 (Center of left rangoli)
+                  {
+                    xp: 12.32,
+                    flameTop: 58.2,
+                    flameW: 2.3,
+                    flameH: 12.8,
+                    auraTop: 52.5,
+                    auraW: 8.5,
+                    shimmerTop: 65.2,
+                    shimmerW: 9.5,
+                    shimmerH: 5.5,
+                    dur: '1.65s',
+                    delay: '-0.2s'
+                  },
+                  // Diya 2 (Lower-left in front of rangoli)
+                  {
+                    xp: 18.26,
+                    flameTop: 76.0,
+                    flameW: 1.75,
+                    flameH: 9.6,
+                    auraTop: 71.8,
+                    auraW: 6.4,
+                    shimmerTop: 86.2,
+                    shimmerW: 7.4,
+                    shimmerH: 5.2,
+                    dur: '1.95s',
+                    delay: '-0.8s'
+                  },
+                  // Diya 3 (Lower-right in front of sweets)
+                  {
+                    xp: 81.22,
+                    flameTop: 75.8,
+                    flameW: 1.85,
+                    flameH: 9.8,
+                    auraTop: 71.5,
+                    auraW: 6.6,
+                    shimmerTop: 86.0,
+                    shimmerW: 7.8,
+                    shimmerH: 5.4,
+                    dur: '1.8s',
+                    delay: '-1.3s'
+                  }
+                ].map((diya, idx) => (
+                  <React.Fragment key={`diya-${idx}`}>
+                    {/* Warm Aura Around Diya */}
+                    <span
+                      className="diwali-anim-node absolute rounded-full pointer-events-none"
+                      style={{
+                        left: `${diya.xp}%`,
+                        top: `${diya.auraTop}%`,
+                        width: `${diya.auraW}%`,
+                        aspectRatio: '1 / 1',
+                        background: 'radial-gradient(circle, rgba(255, 220, 110, 0.72) 0%, rgba(255, 145, 20, 0.35) 48%, rgba(255, 100, 0, 0) 75%)',
+                        mixBlendMode: 'screen',
+                        animation: `diwaliDiyaAura ${diya.dur} ease-in-out ${diya.delay} infinite`
+                      }}
+                    />
+                    {/* Flickering Flame Teardrop */}
+                    <span
+                      className="diwali-anim-node absolute pointer-events-none"
+                      style={{
+                        left: `${diya.xp}%`,
+                        top: `${diya.flameTop}%`,
+                        width: `${diya.flameW}%`,
+                        height: `${diya.flameH}%`,
+                        transformOrigin: '50% 92%',
+                        background: 'radial-gradient(ellipse 50% 65% at 50% 68%, #ffffff 0%, #fff3b0 38%, #ff9f1c 72%, rgba(255, 80, 0, 0) 100%)',
+                        borderRadius: '50% 50% 42% 42% / 68% 68% 32% 32%',
+                        mixBlendMode: 'screen',
+                        animation: `diwaliFlameFlicker ${diya.dur} ease-in-out ${diya.delay} infinite`
+                      }}
+                    />
+                    {/* Floor Light Reflection Shimmer */}
+                    <span
+                      className="diwali-anim-node absolute rounded-full pointer-events-none"
+                      style={{
+                        left: `${diya.xp}%`,
+                        top: `${diya.shimmerTop}%`,
+                        width: `${diya.shimmerW}%`,
+                        height: `${diya.shimmerH}%`,
+                        background: 'radial-gradient(ellipse at center, rgba(255, 195, 75, 0.7) 0%, rgba(255, 120, 20, 0.32) 55%, rgba(255, 90, 0, 0) 100%)',
+                        mixBlendMode: 'screen',
+                        animation: `diwaliFloorShimmer ${diya.dur} ease-in-out ${diya.delay} infinite`
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
+
+                {/* F. SWEETS & GIFT DECORATIONS — Gentle Floating Sweets & Subtle Gift Ribbon Movement */}
+                {/* Gently descending Jalebi into brass jalebi bowl */}
+                <img
+                  src="/assets/aistudio/sweet-jalebi.png"
+                  alt=""
+                  className="diwali-anim-node absolute pointer-events-none object-contain"
+                  style={{
+                    left: '83.25%',
+                    top: '36.2%',
+                    width: '4.0%',
+                    aspectRatio: '54 / 44',
+                    animation: 'diwaliSweetFloatDescend 6.6s ease-in-out -1.2s infinite'
+                  }}
+                />
+                {/* Gently descending Laddu into brass laddu bowl */}
+                <img
+                  src="/assets/aistudio/sweet-laddu.png"
+                  alt=""
+                  className="diwali-anim-node absolute pointer-events-none object-contain"
+                  style={{
+                    left: '93.1%',
+                    top: '52.4%',
+                    width: '2.95%',
+                    aspectRatio: '1 / 1',
+                    animation: 'diwaliSweetFloatDescend 7.4s ease-in-out -4.1s infinite'
+                  }}
+                />
+                {/* Subtle Gift Box Golden Ribbon Bow Movement */}
+                <img
+                  src="/assets/aistudio/gift-bow.png"
+                  alt=""
+                  className="diwali-anim-node absolute pointer-events-none object-contain"
+                  style={{
+                    left: '90.2%',
+                    top: '27.82%',
+                    width: '8.91%',
+                    height: '12.6%',
+                    transformOrigin: '45% 65%',
+                    animation: 'diwaliGiftRibbonMove 5.4s ease-in-out infinite'
+                  }}
+                />
+
+                {/* G. RANGOLI & FLOWERS — Subtle Rangoli Pulsing Glow & Drifting Marigold Petals */}
+                {/* Subtle Rangoli Glow */}
                 <div
-                  className="w-full mt-0.5 sm:mt-1 pl-2.5 xs:pl-4 md:pl-5 pr-[42px] xs:pr-[46px] sm:pr-12 md:pr-14 overflow-hidden relative flex items-center group cursor-default"
-                  id="hero-trending-row"
-                >
-                  <span className="font-bold text-gray-900 text-xs sm:text-[13px] leading-normal shrink-0 select-none mr-2 relative z-10">
-                    Trending:
+                  className="diwali-anim-node absolute rounded-full pointer-events-none"
+                  style={{
+                    left: '1.2%',
+                    top: '57.5%',
+                    width: '21.2%',
+                    height: '24.5%',
+                    background: 'radial-gradient(ellipse at center, rgba(255, 205, 85, 0.42) 0%, rgba(255, 85, 160, 0.28) 52%, rgba(255, 150, 0, 0) 78%)',
+                    mixBlendMode: 'screen',
+                    animation: 'diwaliRangoliPulse 4.6s ease-in-out infinite'
+                  }}
+                />
+
+                {/* Left Marigold Drifting Petals */}
+                {[
+                  { left: '4.2%', top: '81%', dur: '6.8s', delay: '-0.8s', color: '#ff9f1c' },
+                  { left: '6.8%', top: '84%', dur: '7.6s', delay: '-3.4s', color: '#ffbf69' },
+                  { left: '3.1%', top: '76%', dur: '8.2s', delay: '-5.1s', color: '#f77f00' }
+                ].map((p, idx) => (
+                  <span
+                    key={`petal-l-${idx}`}
+                    className="diwali-anim-node absolute w-[7px] h-[4.5px] rounded-full pointer-events-none"
+                    style={{
+                      left: p.left,
+                      top: p.top,
+                      background: p.color,
+                      boxShadow: '0 0 3px rgba(255, 165, 0, 0.6)',
+                      borderRadius: '60% 40% 60% 40%',
+                      animation: `diwaliPetalDriftLeft ${p.dur} ease-in-out ${p.delay} infinite`
+                    }}
+                  />
+                ))}
+
+                {/* Right Marigold Drifting Petals */}
+                {[
+                  { right: '4.5%', top: '82%', dur: '7.1s', delay: '-1.7s', color: '#ff9f1c' },
+                  { right: '7.2%', top: '85%', dur: '6.5s', delay: '-4.2s', color: '#ffbf69' },
+                  { right: '3.4%', top: '77%', dur: '8.0s', delay: '-2.6s', color: '#f77f00' }
+                ].map((p, idx) => (
+                  <span
+                    key={`petal-r-${idx}`}
+                    className="diwali-anim-node absolute w-[7px] h-[4.5px] rounded-full pointer-events-none"
+                    style={{
+                      right: p.right,
+                      top: p.top,
+                      background: p.color,
+                      boxShadow: '0 0 3px rgba(255, 165, 0, 0.6)',
+                      borderRadius: '40% 60% 40% 60%',
+                      animation: `diwaliPetalDriftRight ${p.dur} ease-in-out ${p.delay} infinite`
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {/* Central Hero Content (Expanded Width, Prominent Headline, Larger Category Icons, Larger Search Bar & Trending Keywords) */}
+            <div className="relative z-10 w-full md:w-[60.5%] lg:w-[61.5%] xl:w-[62.5%] md:max-w-[820px] lg:max-w-[890px] xl:max-w-[940px] mx-auto flex flex-col items-center text-center md:-mt-2.5 lg:-mt-3.5">
+              <h1 className="hero-headline text-[21px] min-[360px]:text-[23px] min-[390px]:text-[25px] min-[420px]:text-[26.5px] sm:text-3xl md:text-[32px] lg:text-[41px] xl:text-[46px] 2xl:text-[49px] font-black text-white tracking-tight text-center leading-[1.15] max-w-full px-1 drop-shadow-[0_2px_10px_rgba(25,4,38,0.45)]">
+                {/* Mobile (strictly TWO lines as requested) */}
+                <span className="sm:hidden block">
+                  <span className="block leading-[1.16]">
+                    Professional <span className="text-[#ff2e36]">Food Visuals</span>
                   </span>
-                  <div className="overflow-hidden flex-1 min-w-0 relative">
-                    <div className="marquee-track items-center gap-x-3 py-0.5" style={{ animationDuration: '30s' }}>
-                      {/* Set 1 */}
-                      <div className="flex items-center gap-x-3 shrink-0">
-                        {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
-                          <button
-                            key={`1-${tag}`}
-                            type="button"
-                            onClick={() => handleTagClick(tag)}
-                            className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
-                          >
-                            {tag}{idx < arr.length - 1 ? ',' : ''}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Set 2 (duplicate for seamless loop) */}
-                      <div className="flex items-center gap-x-3 shrink-0 ml-3" aria-hidden="true">
-                        {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
-                          <button
-                            key={`2-${tag}`}
-                            type="button"
-                            onClick={() => handleTagClick(tag)}
-                            className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs sm:text-[13px] font-normal text-gray-700 hover:text-[#e2242b] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none"
-                          >
-                            {tag}{idx < arr.length - 1 ? ',' : ''}
-                          </button>
-                        ))}
+                  <span className="block leading-[1.18] text-[18.5px] min-[360px]:text-[20.5px] min-[390px]:text-[22px] min-[420px]:text-[23.5px] whitespace-nowrap">
+                    That Make Your Food Irresistible
+                  </span>
+                </span>
+                {/* Desktop / Tablet */}
+                <span className="hidden sm:inline">
+                  Professional <span className="text-[#ff2e36]">Food Visuals</span>
+                  <br className="hidden sm:inline" /> That Make Your Food Irresistible
+                </span>
+              </h1>
+              <p className="text-white/95 text-[13px] min-[375px]:text-[14px] sm:text-[15px] md:text-[16px] lg:text-[17.5px] xl:text-[18.5px] font-normal sm:font-medium text-center leading-[1.38] mt-2 sm:mt-2.5 max-w-[330px] min-[390px]:max-w-[355px] sm:max-w-3xl lg:max-w-4xl mx-auto px-2 drop-shadow-[0_1px_6px_rgba(25,4,38,0.4)]">
+                High-quality food photos for restaurants, menus, delivery apps and social media.
+              </p>
+
+              {/* Category Tabs Navigation - Clean Horizontal Alignment & Spacing */}
+              <div
+                className="w-full max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between sm:justify-between overflow-x-auto touch-pan-x pb-1.5 pt-1 gap-5 min-[380px]:gap-7 sm:gap-6 md:gap-6 lg:gap-9 xl:gap-11 text-white scrollbar-none select-none mt-3.5 sm:mt-4 md:mt-5 mb-3.5 sm:mb-4 md:mb-5 hero-category-nav-wrap px-2 sm:px-3 flex-nowrap"
+                id="hero-category-nav"
+              >
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'dish-photos'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('dish-photos');
+                    setSearchQuery('');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[2]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8Z"></path>
+                    <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"></path>
+                    <path d="m2.1 21.9 6.4-6.4"></path>
+                    <path d="m19 5-7 7"></path>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">
+                    <span className="sm:hidden">Photos</span>
+                    <span className="hidden sm:inline">Dish Photos</span>
+                  </span>
+                </button>
+
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'beverages'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('beverages');
+                    handleTagClick('Beverages');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[1.9]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
+                    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
+                    <line x1="6" x2="6" y1="2" y2="4"></line>
+                    <line x1="10" x2="10" y1="2" y2="4"></line>
+                    <line x1="14" x2="14" y1="2" y2="4"></line>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">Beverages</span>
+                </button>
+
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'food-menus'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('food-menus');
+                    setSearchQuery('');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[1.9]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 4v3"></path>
+                    <path d="M4 18h16a1 1 0 0 0 1-1A9 9 0 0 0 3 17a1 1 0 0 0 1 1Z"></path>
+                    <path d="M2 20h20"></path>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">Food Menus</span>
+                </button>
+
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'chef-specials'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('chef-specials');
+                    handleTagClick('North Indian');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[1.9]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M6 18h12v3H6z"></path>
+                    <path d="M6 14a4 4 0 0 1-2-7.5A4 4 0 0 1 12 5a4 4 0 0 1 8 1.5A4 4 0 0 1 18 14Z"></path>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">Chef Specials</span>
+                </button>
+
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'desserts'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('desserts');
+                    handleTagClick('Desserts');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[1.9]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h-2V5.73A2 2 0 0 1 12 2Z"></path>
+                    <path d="M4 11a8 8 0 0 1 16 0H4Z"></path>
+                    <path d="m5 11 1.5 9h11l1.5-9"></path>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">Desserts</span>
+                </button>
+
+                <button
+                  className={`hero-category-btn flex flex-col items-center group cursor-pointer focus:outline-none px-1.5 sm:px-2.5 pb-1.5 sm:pb-2 font-medium border-b-[2px] transition-colors shrink-0 ${
+                    activeCategory === 'pizza-burgers'
+                      ? 'text-[#ff2e36] border-[#ff2e36] font-semibold'
+                      : 'text-white/95 border-transparent hover:text-[#ff2e36]'
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('pizza-burgers');
+                    handleTagClick('Pizza');
+                  }}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-[23px] md:h-[23px] lg:w-[26px] lg:h-[26px] mb-1.5 sm:mb-2 stroke-current fill-none stroke-[1.9]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="m12 2 9 17H3L12 2Z"></path>
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="15" r="1"></circle>
+                    <circle cx="14" cy="16" r="1"></circle>
+                  </svg>
+                  <span className="text-xs sm:text-[13.5px] md:text-[14px] lg:text-[15px] xl:text-[15.5px] whitespace-nowrap">Pizza &amp; Burgers</span>
+                </button>
+              </div>
+
+              {/* Search Bar & Trending Wrapper */}
+              <div className="w-full mx-auto">
+                <div className="w-full grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 xs:gap-x-2.5 gap-y-2 items-center md:flex md:items-start md:gap-3 relative z-30" id="hero-search-container">
+                  {/* Photos Selector Box (Left Column) */}
+                  <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
+                    <button
+                      aria-expanded={mediaDropdownOpen}
+                      aria-haspopup="listbox"
+                      className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] lg:h-[56px] bg-white rounded-xl shadow-lg shadow-black/20 border border-white/80 hover:bg-gray-50 px-3 xs:px-4 md:px-5 lg:px-5.5 flex items-center gap-2 xs:gap-2.5 md:gap-3 text-gray-800 text-xs xs:text-sm sm:text-[15px] md:text-[15.5px] lg:text-base font-semibold transition-colors focus:outline-none cursor-pointer shrink-0"
+                      id="hero-media-dropdown-btn"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMediaDropdownOpen(!mediaDropdownOpen);
+                      }}
+                    >
+                      <span className="flex items-center gap-1.5 xs:gap-2 md:gap-2.5">
+                        <span className="flex items-center" id="search-dropdown-icon">
+                          {selectedMediaType === 'Photos' && (
+                            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] md:w-5 md:h-5 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"></path>
+                              <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round"></path>
+                            </svg>
+                          )}
+                          {(selectedMediaType === 'Videos' || selectedMediaType === 'Video') && (
+                            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] md:w-5 md:h-5 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                              <rect height="14" rx="2" ry="2" width="15" x="1" y="5"></rect>
+                            </svg>
+                          )}
+                          {(selectedMediaType === 'Banners' || selectedMediaType === 'Banner') && (
+                            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] md:w-5 md:h-5 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <rect height="16" rx="2" width="20" x="2" y="4"></rect>
+                              <line x1="2" x2="22" y1="10" y2="10"></line>
+                            </svg>
+                          )}
+                          {(selectedMediaType === 'Templates' || selectedMediaType === 'Template') && (
+                            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] md:w-5 md:h-5 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <rect height="18" rx="2" width="18" x="3" y="3"></rect>
+                              <line x1="3" x2="21" y1="9" y2="9"></line>
+                              <line x1="9" x2="9" y1="21" y2="9"></line>
+                            </svg>
+                          )}
+                        </span>
+                        <span id="search-dropdown-selected-label">{selectedMediaType}</span>
+                      </span>
+                      <svg
+                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] text-neutral-500 transition-transform duration-200 ${mediaDropdownOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        id="search-dropdown-arrow"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
+                      </svg>
+                    </button>
+
+                    <PortalDropdownMenu
+                      isOpen={mediaDropdownOpen}
+                      triggerRef={mediaDropdownRef}
+                      onClose={() => setMediaDropdownOpen(false)}
+                      id="search-dropdown-menu"
+                      ariaLabel="Media selection dropdown"
+                      className="bg-white rounded-xl shadow-lg border border-gray-200 py-1.5"
+                    >
+                      {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
+                        <button
+                          key={type}
+                          className={`search-dropdown-item w-full px-3.5 py-2.5 text-left text-xs sm:text-sm md:text-[15px] font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                            selectedMediaType === type ? 'text-[#e2242b] font-semibold bg-red-50/60' : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
+                          }`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMediaType(type);
+                            setMediaDropdownOpen(false);
+                          }}
+                        >
+                          <span className="truncate">{type}</span>
+                          {selectedMediaType === type && (
+                            <svg className="w-4 h-4 text-[#e2242b] shrink-0 ml-1.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </PortalDropdownMenu>
+                  </div>
+
+                  {/* Right Column: Search Bar & Trending Row */}
+                  <div className="contents md:flex md:flex-1 md:min-w-0 md:flex-col">
+                    {/* Search Input & Button Box */}
+                    <div className="h-11 xs:h-12 sm:h-[50px] md:h-[54px] lg:h-[56px] w-full min-w-0 bg-white rounded-xl shadow-lg shadow-black/20 flex items-center border border-white/80 overflow-hidden pl-3 xs:pl-4 md:pl-5 pr-1 sm:pr-1.5">
+                      <input
+                        ref={searchInputRef}
+                        className="w-full h-full py-0 text-[16px] sm:text-[15px] md:text-[15.5px] lg:text-base text-gray-800 placeholder-neutral-400 bg-transparent border-0 focus:outline-none focus:ring-0 min-w-0"
+                        placeholder="Search for photos"
+                        type="text"
+                        id="main-search-input"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && dishesGridRef.current) {
+                            dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                      />
+                      <button
+                        aria-label="Search"
+                        className="h-[34px] w-[34px] xs:h-[38px] xs:w-[38px] sm:h-[40px] sm:w-[40px] md:h-[44px] md:w-[44px] lg:h-[46px] lg:w-[46px] bg-[#e2242b] hover:bg-[#c81e24] text-white rounded-lg flex items-center justify-center transition-colors focus:outline-none cursor-pointer shrink-0"
+                        type="button"
+                        onClick={() => {
+                          if (dishesGridRef.current) {
+                            dishesGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                      >
+                        <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] md:w-5 md:h-5 lg:w-[21px] lg:h-[21px] stroke-current fill-none stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Trending Keywords Row - Continuous Auto-Scrolling Marquee */}
+                    <div
+                      className="col-span-2 w-full min-w-0 md:mt-2 pl-1 xs:pl-1.5 md:pl-1 pr-1 xs:pr-1.5 md:pr-4 overflow-hidden relative flex items-center group cursor-default"
+                      id="hero-trending-row"
+                    >
+                      <span className="font-bold text-white text-xs xs:text-[13px] sm:text-[13.5px] md:text-[14px] lg:text-[14.5px] leading-normal shrink-0 select-none mr-2 relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+                        Trending:
+                      </span>
+                      <div className="overflow-hidden flex-1 min-w-0 relative no-scrollbar">
+                        <div className="marquee-track items-center gap-x-3 py-0.5" style={{ animationDuration: '30s' }}>
+                          {/* Set 1 */}
+                          <div className="flex items-center gap-x-3 shrink-0">
+                            {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
+                              <button
+                                key={`1-${tag}`}
+                                type="button"
+                                onClick={() => handleTagClick(tag)}
+                                className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs xs:text-[13px] sm:text-[13.5px] md:text-[14px] lg:text-[14.5px] font-normal text-white/95 hover:text-[#ff6b70] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                              >
+                                {tag}{idx < arr.length - 1 ? ',' : ''}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Set 2 (duplicate for seamless loop) */}
+                          <div className="flex items-center gap-x-3 shrink-0 ml-3" aria-hidden="true">
+                            {(['burger', 'pizza', 'biryani', 'coffee', 'desserts', 'noodles', 'pasta', 'wrap', 'sandwich', 'thali', 'momos', 'dosa', 'paneer', 'kebab', 'ice cream', 'Chinese', 'South Indian', 'North Indian', 'fried rice', 'shawarma', 'rolls', 'pizza fries'] as const).map((tag, idx, arr) => (
+                              <button
+                                key={`2-${tag}`}
+                                type="button"
+                                onClick={() => handleTagClick(tag)}
+                                className="p-0 m-0 bg-transparent border-0 inline-flex items-center text-xs xs:text-[13px] sm:text-[13.5px] md:text-[14px] lg:text-[14.5px] font-normal text-white/95 hover:text-[#ff6b70] leading-normal transition-colors cursor-pointer shrink-0 whitespace-nowrap focus:outline-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                              >
+                                {tag}{idx < arr.length - 1 ? ',' : ''}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+
+            {/* Mobile Curved Lower Edge (smooth symmetrical white arch transition into the promotional carousel section) */}
+            <svg
+              aria-hidden="true"
+              className="block md:hidden absolute -bottom-[1px] inset-x-0 w-full h-[24px] min-[390px]:h-[26px] sm:h-[30px] pointer-events-none select-none z-10"
+              preserveAspectRatio="none"
+              viewBox="0 0 1000 100"
+            >
+              <path
+                d="M0,98 Q500,-72 1000,98 L1000,100 L0,100 Z"
+                fill="#ffffff"
+              />
+            </svg>
+          </section>
 
       {/* 4. BANNER CAROUSEL SECTION */}
-      <section aria-label="Featured Photography Banners" className="w-full bg-white py-6 px-4 sm:px-8 lg:px-12">
+      <section aria-label="Featured Photography Banners" className="w-full bg-white pt-2.5 pb-6 md:py-6 px-3.5 sm:px-8 lg:px-12">
         <div className="w-full mx-auto">
           <div className="relative w-full overflow-hidden rounded-xl" id="banner-carousel-container">
             <div
@@ -2780,7 +3549,7 @@ export default function App() {
                   placeholder="Enter your email address"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs text-white placeholder-gray-500 bg-neutral-900 border border-neutral-700 rounded-lg focus:outline-none focus:border-[#E50914] transition-colors"
+                  className="w-full px-3.5 py-2 text-[16px] sm:text-xs text-white placeholder-gray-500 bg-neutral-900 border border-neutral-700 rounded-lg focus:outline-none focus:border-[#E50914] transition-colors"
                 />
                 <button
                   type="submit"
@@ -2871,12 +3640,13 @@ export default function App() {
       {faqModalOpen && (
         <div
           aria-hidden="false"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+          data-modal-overlay="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200 overscroll-contain"
           id="faq-modal"
           onClick={() => setFaqModalOpen(false)}
         >
           <div
-            className="relative w-[92vw] sm:w-full max-w-[680px] max-h-[82vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col transform transition-transform duration-200"
+            className="relative w-[92vw] sm:w-full max-w-[680px] max-h-[82dvh] sm:max-h-[82vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col transform transition-transform duration-200"
             id="faq-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
@@ -2904,7 +3674,7 @@ export default function App() {
             </div>
 
             {/* Scrollable Accordion Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2.5">
+            <div data-modal-scroll-container="true" className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-2.5">
               {FAQ_ITEMS.map((item, idx) => {
                 const isOpen = openFaqIndex === idx;
                 return (
@@ -2972,12 +3742,13 @@ export default function App() {
       {contactModalOpen && (
         <div
           aria-hidden="false"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+          data-modal-overlay="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200 overscroll-contain"
           id="contact-modal"
           onClick={() => setContactModalOpen(false)}
         >
           <div
-            className="relative w-[92vw] sm:w-full max-w-[540px] max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col transform transition-transform duration-200"
+            className="relative w-[92vw] sm:w-full max-w-[540px] max-h-[85dvh] sm:max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col transform transition-transform duration-200"
             id="contact-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
@@ -3006,7 +3777,7 @@ export default function App() {
             </div>
 
             {/* Scrollable Form Body */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+            <div data-modal-scroll-container="true" className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">
               <form onSubmit={handleContactSubmit} className="flex flex-col gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -3018,7 +3789,7 @@ export default function App() {
                     placeholder="Your full name"
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                    className="w-full px-4 py-2.5 text-[16px] sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -3032,7 +3803,7 @@ export default function App() {
                     placeholder="name@restaurant.com"
                     value={contactForm.email}
                     onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                    className="w-full px-4 py-2.5 text-[16px] sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -3045,7 +3816,7 @@ export default function App() {
                     placeholder="+1 (555) 000-0000"
                     value={contactForm.phone}
                     onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                    className="w-full px-4 py-2.5 text-[16px] sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -3059,7 +3830,7 @@ export default function App() {
                     placeholder="Tell us about your restaurant, dishes, or photoshoot requirements..."
                     value={contactForm.query}
                     onChange={(e) => setContactForm({ ...contactForm, query: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors resize-y"
+                    className="w-full px-4 py-2.5 text-[16px] sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors resize-y"
                   ></textarea>
                 </div>
 
@@ -3081,7 +3852,8 @@ export default function App() {
       {loginModalOpen && (
         <div
           aria-hidden="false"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+          data-modal-overlay="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs transition-opacity duration-200 overscroll-contain"
           id="login-signup-modal"
           onClick={() => setLoginModalOpen(false)}
         >
@@ -3153,7 +3925,7 @@ export default function App() {
             </div>
 
             {/* RIGHT SIDE: White Background & Clean Form (Begins directly on mobile without hero banner) */}
-            <div className="w-full md:w-7/12 lg:w-1/2 p-4 sm:p-6 md:p-7 lg:p-9 flex flex-col justify-center overflow-y-auto overscroll-contain bg-white">
+            <div data-modal-scroll-container="true" className="w-full md:w-7/12 lg:w-1/2 p-4 sm:p-6 md:p-7 lg:p-9 flex flex-col justify-center overflow-y-auto overscroll-contain bg-white">
               <div className="w-full max-w-[340px] sm:max-w-[360px] mx-auto flex flex-col gap-3 sm:gap-3.5 my-auto">
                 {/* Heading & Subtitle */}
                 <div className="pr-6 sm:pr-0">
@@ -3180,7 +3952,7 @@ export default function App() {
                         placeholder="e.g. Bella Kitchen or Sarah Lee"
                         value={loginForm.fullName}
                         onChange={(e) => setLoginForm({ ...loginForm, fullName: e.target.value })}
-                        className="h-10 sm:h-10.5 w-full px-3.5 text-xs sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                        className="h-10 sm:h-10.5 w-full px-3.5 text-[16px] sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                       />
                     </div>
                   )}
@@ -3195,7 +3967,7 @@ export default function App() {
                       placeholder="Enter your email or username"
                       value={loginForm.identifier}
                       onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
-                      className="h-10 sm:h-10.5 w-full px-3.5 text-xs sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                      className="h-10 sm:h-10.5 w-full px-3.5 text-[16px] sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                     />
                   </div>
 
@@ -3221,7 +3993,7 @@ export default function App() {
                         placeholder="Enter your password"
                         value={loginForm.password}
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                        className="h-10 sm:h-10.5 w-full px-3.5 pr-10 text-xs sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
+                        className="h-10 sm:h-10.5 w-full px-3.5 pr-10 text-[16px] sm:text-[13px] bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#E50914] focus:outline-none transition-colors"
                       />
                       <button
                         type="button"
@@ -3338,12 +4110,14 @@ export default function App() {
       {selectedModalDish && (
         <div
           aria-hidden="false"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+          data-modal-overlay="true"
+          className="fixed inset-0 z-50 flex items-center justify-center px-6 py-5 sm:p-6 md:p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200 overscroll-contain"
           id="dish-modal"
           onClick={() => setSelectedModalDish(null)}
         >
           <div
-            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 transform transition-transform duration-200"
+            data-modal-scroll-container="true"
+            className="relative w-[86vw] max-w-[330px] sm:w-full sm:max-w-[380px] md:max-w-md max-h-[78dvh] sm:max-h-[84dvh] md:max-h-[90dvh] mx-auto my-auto overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-2xl border border-gray-100 transform transition-transform duration-200"
             id="dish-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
@@ -3360,16 +4134,16 @@ export default function App() {
               </svg>
             </button>
 
-            <div className="w-full h-52 bg-neutral-50 flex items-center justify-center p-2 relative border-b border-gray-100 overflow-hidden">
+            <div className="w-full h-36 sm:h-44 md:h-52 bg-neutral-50 flex items-center justify-center p-2 relative border-b border-gray-100 overflow-hidden">
               <img
                 alt={selectedModalDish.name}
                 referrerPolicy="no-referrer"
-                className="max-h-[185px] max-w-full object-contain drop-shadow-md scale-[1.5]"
+                className="max-h-[130px] sm:max-h-[160px] md:max-h-[185px] max-w-full object-contain drop-shadow-md scale-[1.5]"
                 src={selectedModalDish.img}
               />
             </div>
 
-            <div className="p-5 flex flex-col gap-3">
+            <div className="p-3.5 sm:p-4 md:p-5 flex flex-col gap-2 sm:gap-2.5 md:gap-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -3391,7 +4165,7 @@ export default function App() {
               </div>
 
               {/* Required Metadata Fields - Two Column Table */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 grid grid-cols-[100px_1fr] gap-x-3 gap-y-2 text-xs items-center">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-2.5 sm:p-3 md:p-3.5 grid grid-cols-[90px_1fr] sm:grid-cols-[100px_1fr] gap-x-2.5 sm:gap-x-3 gap-y-1.5 md:gap-y-2 text-xs items-center">
                 <span className="font-bold text-gray-700">Price:</span>
                 <span className="text-gray-900 font-extrabold text-sm">₹{selectedModalDish.price ?? 25}</span>
 
@@ -3414,9 +4188,9 @@ export default function App() {
                 <span className="text-[#E50914] font-bold">Sold Once Only</span>
               </div>
 
-              <div className="pt-2 flex items-center justify-end">
+              <div className="pt-1 md:pt-2 flex items-center justify-end">
                 <button
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#E50914] hover:bg-[#c81e24] text-white font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm focus:outline-none"
+                  className="w-full py-2 md:py-2.5 px-4 rounded-xl bg-[#E50914] hover:bg-[#c81e24] text-white font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm focus:outline-none"
                   type="button"
                   onClick={() => {
                     addToCart(selectedModalDish);
@@ -3436,7 +4210,7 @@ export default function App() {
 
       {/* CART SLIDE-OVER DRAWER */}
       {cartDrawerOpen && (
-        <div aria-hidden="false" className="fixed inset-0 z-50 overflow-hidden" id="cart-drawer-container">
+        <div aria-hidden="false" data-modal-overlay="true" className="fixed inset-0 z-50 overflow-hidden overscroll-contain" id="cart-drawer-container">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
             id="cart-drawer-backdrop"
@@ -3467,7 +4241,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3" id="cart-drawer-items">
+              <div data-modal-scroll-container="true" className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3" id="cart-drawer-items">
                 {Object.keys(cart).length === 0 ? (
                   <p className="text-center text-gray-400 text-sm mt-12">Your cart is currently empty.</p>
                 ) : (

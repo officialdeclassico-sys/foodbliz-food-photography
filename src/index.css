@@ -94,3 +94,390 @@
     height: 95px !important;
   }
 }
+
+/* ==========================================================================
+   DIWALI HERO CONTINUOUS FESTIVE ANIMATIONS
+   ========================================================================== */
+
+/* A. Decorative String Lights — Soft Steady Glow with Barely Noticeable Gentle Twinkle */
+@keyframes diwaliBulbFlicker {
+  0%, 35%, 68%, 100% {
+    opacity: 0.22;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  18% {
+    opacity: 0.36;
+    transform: translate(-50%, -50%) scale(1.03);
+  }
+  52% {
+    opacity: 0.16;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  84% {
+    opacity: 0.32;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+}
+
+/* B. Fireworks & Crackers: Rocket Launch + Burst + Sparkling Embers */
+@keyframes diwaliRocketLaunch {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 54px) scaleY(0.3);
+  }
+  6% {
+    opacity: 0.95;
+    transform: translate(-50%, 36px) scaleY(1);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, 0px) scaleY(1.15);
+  }
+  22%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -4px) scaleY(0.2);
+  }
+}
+
+@keyframes diwaliFireworkBurst {
+  0%, 16% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.14) rotate(-8deg);
+    filter: brightness(1.6);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.82) rotate(0deg);
+    filter: brightness(1.45);
+  }
+  44% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) scale(1.04) rotate(4deg);
+    filter: brightness(1.2);
+  }
+  68% {
+    opacity: 0.38;
+    transform: translate(-50%, -50%) scale(1.14) rotate(7deg);
+    filter: brightness(0.95);
+  }
+  84%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2) rotate(9deg);
+  }
+}
+
+@keyframes diwaliSparkleDrift {
+  0%, 19% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2);
+  }
+  26% {
+    opacity: 1;
+    transform: translate(calc(var(--dx, 14px) * 0.45), calc(var(--dy, -12px) * 0.45)) scale(1.15);
+  }
+  58% {
+    opacity: 0.85;
+    transform: translate(var(--dx, 14px), calc(var(--dy, -12px) + 6px)) scale(0.9);
+  }
+  82%, 100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx, 14px) * 1.25), calc(var(--dy, -12px) + 18px)) scale(0.15);
+  }
+}
+
+/* C. Floating Sky Lanterns: Smooth Ascent, Sway, Inner Flicker & Seamless Reappear */
+@keyframes diwaliLanternFloat {
+  0% {
+    opacity: 0;
+    transform: translate3d(0px, 18px, 0) rotate(-2.5deg) scale(0.94);
+  }
+  12% {
+    opacity: 0.98;
+    transform: translate3d(3px, 10px, 0) rotate(1.5deg) scale(0.98);
+  }
+  38% {
+    opacity: 1;
+    transform: translate3d(-4px, -2px, 0) rotate(-3deg) scale(1);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(5px, -14px, 0) rotate(2.8deg) scale(1.02);
+  }
+  86% {
+    opacity: 0.92;
+    transform: translate3d(-2px, -24px, 0) rotate(-1.8deg) scale(0.99);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(2px, -34px, 0) rotate(1deg) scale(0.93);
+  }
+}
+
+@keyframes diwaliLanternInnerGlow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.88);
+  }
+  35% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  68% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+/* D. Happy Diwali Circular Artwork: Golden Star & Sparkle Outline + Tiny Glitter + Blooming Greeting */
+@keyframes diwaliStarTwinkle {
+  0%, 100% {
+    opacity: 0.32;
+    transform: translate(-50%, -50%) scale(0.68) rotate(-8deg);
+  }
+  40% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) scale(1.08) rotate(6deg);
+  }
+  70% {
+    opacity: 0.58;
+    transform: translate(-50%, -50%) scale(0.86) rotate(0deg);
+  }
+}
+
+@keyframes diwaliGlitterPop {
+  0%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  25% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(0.45);
+  }
+  50% {
+    opacity: 0.98;
+    transform: translate(calc(-50% + var(--gx, 2px)), calc(-50% + var(--gy, -3px))) scale(1.15);
+  }
+  75% {
+    opacity: 0.25;
+    transform: translate(calc(-50% + var(--gx, 3px)), calc(-50% + var(--gy, -5px))) scale(0.5);
+  }
+}
+
+@keyframes diwaliGreetingBloom {
+  0%, 100% {
+    opacity: 0.28;
+    transform: scale(0.985);
+    filter: brightness(0.95) drop-shadow(0 0 4px rgba(255, 190, 60, 0.35));
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.015);
+    filter: brightness(1.28) drop-shadow(0 0 14px rgba(255, 208, 84, 0.92)) drop-shadow(0 0 26px rgba(255, 140, 36, 0.65));
+  }
+  65% {
+    opacity: 0.88;
+    transform: scale(1.005);
+    filter: brightness(1.15) drop-shadow(0 0 10px rgba(255, 195, 70, 0.75));
+  }
+}
+
+/* E. Diyas: Natural Flame Flicker, Warm Aura & Floor Reflection Shimmer */
+@keyframes diwaliFlameFlicker {
+  0%, 100% {
+    transform: translate(-50%, -100%) scaleX(1) scaleY(1) skewX(0deg);
+    filter: brightness(1.05);
+  }
+  20% {
+    transform: translate(-50%, -100%) scaleX(0.93) scaleY(1.09) skewX(-3.5deg);
+    filter: brightness(1.22);
+  }
+  42% {
+    transform: translate(-50%, -100%) scaleX(1.05) scaleY(0.94) skewX(2.8deg);
+    filter: brightness(0.98);
+  }
+  64% {
+    transform: translate(-50%, -100%) scaleX(0.95) scaleY(1.12) skewX(3.8deg);
+    filter: brightness(1.28);
+  }
+  82% {
+    transform: translate(-50%, -100%) scaleX(1.03) scaleY(0.97) skewX(-2.2deg);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes diwaliDiyaAura {
+  0%, 100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.94);
+  }
+  50% {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+
+@keyframes diwaliFloorShimmer {
+  0%, 100% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scaleX(0.92) scaleY(0.95);
+  }
+  33% {
+    opacity: 0.82;
+    transform: translate(-50%, -50%) scaleX(1.08) scaleY(1.04);
+  }
+  66% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scaleX(0.98) scaleY(1.02);
+  }
+}
+
+/* F. Sweets & Gift Box Ribbon Restrained Animations */
+@keyframes diwaliSweetFloatDescend {
+  0% {
+    opacity: 0;
+    transform: translate3d(0px, -18px, 0) rotate(-8deg) scale(0.88);
+  }
+  18% {
+    opacity: 0.96;
+    transform: translate3d(-2px, -11px, 0) rotate(-3deg) scale(0.98);
+  }
+  58% {
+    opacity: 1;
+    transform: translate3d(1px, 0px, 0) rotate(2deg) scale(1);
+  }
+  82% {
+    opacity: 0.95;
+    transform: translate3d(0px, 1px, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0px, 2px, 0) rotate(0deg) scale(0.95);
+  }
+}
+
+@keyframes diwaliGiftRibbonMove {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  30% {
+    transform: translateY(-2.5px) scale(1.045, 1.06) rotate(-1.8deg);
+    filter: brightness(1.18) drop-shadow(0 2px 6px rgba(255, 200, 60, 0.55));
+  }
+  60% {
+    transform: translateY(-1.5px) scale(1.03, 1.04) rotate(1.6deg);
+    filter: brightness(1.12) drop-shadow(0 1px 4px rgba(255, 190, 50, 0.4));
+  }
+}
+
+/* G. Rangoli Subtle Pulse & Drifting Marigold Flower Petals */
+@keyframes diwaliRangoliPulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.97);
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.68;
+    transform: scale(1.03);
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes diwaliPetalDriftLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(0px, 6px, 0) rotate(0deg) scale(0.75);
+  }
+  20% {
+    opacity: 0.92;
+    transform: translate3d(8px, -4px, 0) rotate(35deg) scale(1);
+  }
+  65% {
+    opacity: 0.85;
+    transform: translate3d(22px, -16px, 0) rotate(110deg) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(34px, -8px, 0) rotate(175deg) scale(0.7);
+  }
+}
+
+@keyframes diwaliPetalDriftRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0px, 6px, 0) rotate(0deg) scale(0.75);
+  }
+  20% {
+    opacity: 0.92;
+    transform: translate3d(-8px, -5px, 0) rotate(-35deg) scale(1);
+  }
+  65% {
+    opacity: 0.85;
+    transform: translate3d(-22px, -15px, 0) rotate(-110deg) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-34px, -7px, 0) rotate(-175deg) scale(0.7);
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .diwali-anim-node,
+  .diwali-anim-node * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   MOBILE INPUT AUTO-ZOOM PREVENTION & MODAL SCROLL-LOCK UTILITIES
+   ========================================================================== */
+
+/* Prevent iOS Safari & Android Chrome from auto-zooming when focusing inputs (< 16px triggers zoom) */
+@media screen and (max-width: 767.98px) {
+  input,
+  textarea,
+  select,
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="url"] {
+    font-size: 16px !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media screen and (max-width: 1024px) {
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 1em) !important;
+    }
+  }
+}
+
+/* Modal background scroll lock & scroll chaining prevention */
+html.modal-scroll-locked,
+body.modal-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+[data-modal-overlay="true"] {
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+[data-modal-scroll-container="true"] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+
