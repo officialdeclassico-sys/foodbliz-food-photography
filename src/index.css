@@ -5,6 +5,22 @@
   --border-width: 2px;
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+}
+
+#root {
+  width: 100%;
+  min-height: 100%;
+  overflow: visible;
+}
+
 @keyframes marqueeScroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -34,12 +50,16 @@
   border-right: 1px solid #e5e7eb;
 }
 
-/* Custom scrollbar hide */
-.no-scrollbar::-webkit-scrollbar {
+/* Horizontal carousel scrollbar hide utilities */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
-.no-scrollbar {
+.no-scrollbar,
+.scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -50,10 +70,13 @@
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     -webkit-overflow-scrolling: touch !important;
+    overflow-y: hidden !important;
     scrollbar-width: none !important;
   }
   .hero-category-nav-wrap::-webkit-scrollbar {
     display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
   .dish-card {
     padding: 0.625rem !important;

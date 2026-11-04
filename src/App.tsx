@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 
 // Data types
 interface Dish {
@@ -616,7 +615,7 @@ const TestimonialsSection: React.FC = () => {
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="flex items-stretch gap-4 sm:gap-6 lg:gap-8 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar py-2 px-1"
+            className="flex items-stretch gap-4 sm:gap-6 lg:gap-8 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory no-scrollbar py-2 px-1"
           >
             {TESTIMONIALS.map((t, idx) => (
               <div
@@ -778,145 +777,6 @@ function useModalScrollLock(isLocked: boolean) {
   }, [isLocked]);
 }
 
-// REUSABLE PORTAL DROPDOWN MENU (Escapes overflow:hidden ancestors & auto-flips/clamps within viewport)
-interface PortalDropdownMenuProps {
-  isOpen: boolean;
-  triggerRef: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  id?: string;
-  ariaLabel?: string;
-  className?: string;
-  children: React.ReactNode;
-}
-
-const PortalDropdownMenu: React.FC<PortalDropdownMenuProps> = ({
-  isOpen,
-  triggerRef,
-  onClose,
-  id,
-  ariaLabel,
-  className = '',
-  children
-}) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{
-    top: number;
-    left: number;
-    minWidth: number;
-    maxHeight: number;
-  }>({
-    top: -9999,
-    left: -9999,
-    minWidth: 140,
-    maxHeight: 320
-  });
-
-  const updatePosition = useCallback(() => {
-    const triggerEl = triggerRef.current;
-    if (!triggerEl || typeof window === 'undefined') return;
-
-    const rect = triggerEl.getBoundingClientRect();
-    const vw = window.innerWidth || document.documentElement.clientWidth;
-    const vh = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
-    const margin = 8;
-    const offset = 6;
-
-    const menuEl = menuRef.current;
-    const measuredHeight = menuEl ? menuEl.scrollHeight : 172;
-    const measuredWidth = Math.max(rect.width, menuEl ? menuEl.offsetWidth : 140, 140);
-
-    const spaceBelow = vh - rect.bottom - margin - offset;
-    const spaceAbove = rect.top - margin - offset;
-
-    let top = rect.bottom + offset;
-    let maxHeight = Math.max(140, spaceBelow);
-
-    if (spaceBelow < measuredHeight && spaceAbove > spaceBelow) {
-      maxHeight = Math.max(140, spaceAbove);
-      const effectiveHeight = Math.min(measuredHeight, maxHeight);
-      top = Math.max(margin, rect.top - effectiveHeight - offset);
-    } else {
-      top = Math.min(rect.bottom + offset, Math.max(margin, vh - Math.min(measuredHeight, maxHeight) - margin));
-    }
-
-    const left = Math.min(
-      Math.max(margin, rect.left),
-      Math.max(margin, vw - measuredWidth - margin)
-    );
-
-    setCoords({
-      top,
-      left,
-      minWidth: Math.max(rect.width, 140),
-      maxHeight
-    });
-  }, [triggerRef]);
-
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-    updatePosition();
-
-    const handleScrollOrResize = () => {
-      updatePosition();
-    };
-
-    window.addEventListener('scroll', handleScrollOrResize, true);
-    window.addEventListener('resize', handleScrollOrResize);
-    window.visualViewport?.addEventListener('resize', handleScrollOrResize);
-    window.visualViewport?.addEventListener('scroll', handleScrollOrResize);
-
-    return () => {
-      window.removeEventListener('scroll', handleScrollOrResize, true);
-      window.removeEventListener('resize', handleScrollOrResize);
-      window.visualViewport?.removeEventListener('resize', handleScrollOrResize);
-      window.visualViewport?.removeEventListener('scroll', handleScrollOrResize);
-    };
-  }, [isOpen, updatePosition]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePointerDownOutside = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node | null;
-      if (!target) return;
-      if (triggerRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      onClose();
-    };
-
-    document.addEventListener('mousedown', handlePointerDownOutside);
-    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDownOutside);
-      document.removeEventListener('touchstart', handlePointerDownOutside);
-    };
-  }, [isOpen, onClose, triggerRef]);
-
-  if (!isOpen || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div
-      ref={menuRef}
-      id={id}
-      role="listbox"
-      aria-label={ariaLabel}
-      className={className}
-      style={{
-        position: 'fixed',
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
-        minWidth: `${coords.minWidth}px`,
-        maxHeight: `${coords.maxHeight}px`,
-        overflowY: 'auto',
-        zIndex: 9999
-      }}
-    >
-      {children}
-    </div>,
-    document.body
-  );
-};
-
 export default function App() {
   // Ticker pause state
   const [tickerPaused, setTickerPaused] = useState(false);
@@ -1055,6 +915,22 @@ export default function App() {
       document.removeEventListener('touchstart', handleOutsideHeaderClick);
     };
   }, [mobileMenuOpen]);
+
+  // Close media type dropdown on outside click
+  useEffect(() => {
+    if (!mediaDropdownOpen) return;
+    const handleOutsideMediaDropdownClick = (e: MouseEvent | TouchEvent) => {
+      if (mediaDropdownRef.current && !mediaDropdownRef.current.contains(e.target as Node)) {
+        setMediaDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideMediaDropdownClick);
+    document.addEventListener('touchstart', handleOutsideMediaDropdownClick, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideMediaDropdownClick);
+      document.removeEventListener('touchstart', handleOutsideMediaDropdownClick);
+    };
+  }, [mediaDropdownOpen]);
 
   // Escape key closes modals and dropdowns
   useEffect(() => {
@@ -1216,7 +1092,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-white min-h-screen w-full flex flex-col items-stretch justify-start antialiased selection:bg-red-500 selection:text-white overflow-x-hidden text-gray-900" id="home">
+    <div className="bg-white min-h-screen w-full flex flex-col items-stretch justify-start antialiased selection:bg-red-500 selection:text-white overflow-x-clip text-gray-900" id="home">
       {/* 1. TRENDING FOOD PICTURES TICKER */}
       <section aria-label="Trending Food Pictures Ticker" className="w-full bg-white overflow-hidden shadow-xs">
         <div
@@ -1754,7 +1630,7 @@ export default function App() {
               </div>
 
               {/* THREE PRICING CARDS - STRICTLY IN ONE HORIZONTAL ROW ACROSS DESKTOP, TABLET, MOBILE */}
-              <div className="w-full overflow-x-auto no-scrollbar py-1">
+              <div className="w-full overflow-x-auto overflow-y-hidden no-scrollbar py-1">
                 <div className="flex flex-row items-stretch justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8 min-w-full">
                   {(packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES).map((pkg) => (
                     <div
@@ -1988,10 +1864,10 @@ export default function App() {
           {/* ABOUT US PAGE — STRUCTURALLY MATCHING REFERENCE    */}
           {/* ================================================== */}
           {/* Full-Width Search Bar Section immediately below navigation */}
-          <section className="w-full bg-white border-b border-gray-200 py-2 sm:py-2.5 px-3 sm:px-6 lg:px-8">
+          <section className="w-full bg-white border-b border-gray-200 py-2 sm:py-2.5 px-3 sm:px-6 lg:px-8 relative z-30 overflow-visible">
             <div className="w-full flex items-center gap-1.5 xs:gap-2 sm:gap-3 relative z-30">
               {/* Photos Selector Box */}
-              <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
+              <div className="relative shrink-0 z-50" id="search-type-dropdown" ref={mediaDropdownRef}>
                 <button
                   aria-expanded={mediaDropdownOpen}
                   aria-haspopup="listbox"
@@ -2033,42 +1909,44 @@ export default function App() {
                     </span>
                     <span>{selectedMediaType}</span>
                   </span>
-                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${mediaDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
 
-                {/* Dropdown Menu - rendered via Portal outside clipping containers with automatic viewport positioning */}
-                <PortalDropdownMenu
-                  isOpen={mediaDropdownOpen}
-                  triggerRef={mediaDropdownRef}
-                  onClose={() => setMediaDropdownOpen(false)}
-                  ariaLabel="Media selection dropdown"
-                  className="w-40 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 text-left animate-in fade-in zoom-in-95 duration-100"
-                >
-                  {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
-                    <div
-                      key={type}
-                      role="option"
-                      aria-selected={selectedMediaType === type}
-                      tabIndex={0}
-                      className={`w-full px-4 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between cursor-pointer transition-colors ${
-                        selectedMediaType === type ? 'bg-red-50 text-[#E50914]' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        setSelectedMediaType(type);
-                        setMediaDropdownOpen(false);
-                      }}
-                    >
-                      <span>{type}</span>
-                      {selectedMediaType === type && (
-                        <svg className="w-3.5 h-3.5 text-[#E50914]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      )}
-                    </div>
-                  ))}
-                </PortalDropdownMenu>
+                {mediaDropdownOpen && (
+                  <div
+                    id="search-dropdown-menu"
+                    role="listbox"
+                    aria-label="Media selection dropdown"
+                    className="absolute left-0 top-full mt-1.5 w-full overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200 py-1 text-left z-50"
+                  >
+                    {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
+                      <button
+                        key={type}
+                        role="option"
+                        aria-selected={selectedMediaType === type}
+                        type="button"
+                        className={`search-dropdown-item w-full px-2.5 xs:px-3 md:px-3.5 py-1.5 sm:py-2 text-left text-xs xs:text-[13px] sm:text-sm font-medium transition-colors flex items-center justify-between gap-1 cursor-pointer ${
+                          selectedMediaType === type
+                            ? 'text-[#e2242b] font-semibold bg-red-50/60'
+                            : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
+                        }`}
+                        onClick={() => {
+                          setSelectedMediaType(type);
+                          setMediaDropdownOpen(false);
+                        }}
+                      >
+                        <span className="truncate">{type}</span>
+                        {selectedMediaType === type && (
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e2242b] shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Search Bar Input Container extending across full remaining width */}
@@ -2205,7 +2083,7 @@ export default function App() {
           {/* 3. DIWALI HERO SECTION — EXACT REPLICA + CONTINUOUS FESTIVE ANIMATIONS */}
           <section
             id="about"
-            className="relative w-full overflow-hidden flex flex-col justify-start md:justify-center items-center px-3.5 sm:px-6 lg:px-8 pt-[35.5vw] min-[390px]:pt-[36vw] sm:pt-[35vw] pb-9 min-[390px]:pb-10 sm:pb-11 md:py-5 lg:py-6 min-h-[390px] sm:min-h-[420px] md:min-h-[395px] lg:min-h-[420px] xl:min-h-[435px] lg:aspect-[1347/381]"
+            className="relative z-30 w-full overflow-visible flex flex-col justify-start md:justify-center items-center px-3.5 sm:px-6 lg:px-8 pt-[35.5vw] min-[390px]:pt-[36vw] sm:pt-[35vw] pb-9 min-[390px]:pb-10 sm:pb-11 md:py-5 lg:py-6 min-h-[390px] sm:min-h-[420px] md:min-h-[395px] lg:min-h-[420px] xl:min-h-[435px] lg:aspect-[1347/381]"
             style={{
               background: 'linear-gradient(180deg, #27053a 0%, #3d0546 36%, #56054a 68%, #6c044e 100%)'
             }}
@@ -3042,7 +2920,7 @@ export default function App() {
             ))}
 
             {/* Central Hero Content (Expanded Width, Prominent Headline, Larger Category Icons, Larger Search Bar & Trending Keywords) */}
-            <div className="relative z-10 w-full md:w-[60.5%] lg:w-[61.5%] xl:w-[62.5%] md:max-w-[820px] lg:max-w-[890px] xl:max-w-[940px] mx-auto flex flex-col items-center text-center md:-mt-2.5 lg:-mt-3.5">
+            <div className="relative z-20 w-full md:w-[60.5%] lg:w-[61.5%] xl:w-[62.5%] md:max-w-[820px] lg:max-w-[890px] xl:max-w-[940px] mx-auto flex flex-col items-center text-center md:-mt-2.5 lg:-mt-3.5">
               <h1 className="hero-headline text-[21px] min-[360px]:text-[23px] min-[390px]:text-[25px] min-[420px]:text-[26.5px] sm:text-3xl md:text-[32px] lg:text-[41px] xl:text-[46px] 2xl:text-[49px] font-black text-white tracking-tight text-center leading-[1.15] max-w-full px-1 drop-shadow-[0_2px_10px_rgba(25,4,38,0.45)]">
                 {/* Mobile (strictly TWO lines as requested) */}
                 <span className="sm:hidden block">
@@ -3065,7 +2943,7 @@ export default function App() {
 
               {/* Category Tabs Navigation - Clean Horizontal Alignment & Spacing */}
               <div
-                className="w-full max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between sm:justify-between overflow-x-auto touch-pan-x pb-1.5 pt-1 gap-5 min-[380px]:gap-7 sm:gap-6 md:gap-6 lg:gap-9 xl:gap-11 text-white scrollbar-none select-none mt-3.5 sm:mt-4 md:mt-5 mb-3.5 sm:mb-4 md:mb-5 hero-category-nav-wrap px-2 sm:px-3 flex-nowrap"
+                className="w-full max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between sm:justify-between overflow-x-auto overflow-y-hidden touch-pan-x pb-1.5 pt-1 gap-5 min-[380px]:gap-7 sm:gap-6 md:gap-6 lg:gap-9 xl:gap-11 text-white no-scrollbar scrollbar-none select-none mt-3.5 sm:mt-4 md:mt-5 mb-3.5 sm:mb-4 md:mb-5 hero-category-nav-wrap px-2 sm:px-3 flex-nowrap"
                 id="hero-category-nav"
               >
                 <button
@@ -3199,7 +3077,7 @@ export default function App() {
               <div className="w-full mx-auto">
                 <div className="w-full grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 xs:gap-x-2.5 gap-y-2 items-center md:flex md:items-start md:gap-3 relative z-30" id="hero-search-container">
                   {/* Photos Selector Box (Left Column) */}
-                  <div className="relative shrink-0" id="search-type-dropdown" ref={mediaDropdownRef}>
+                  <div className="relative shrink-0 z-50" id="search-type-dropdown" ref={mediaDropdownRef}>
                     <button
                       aria-expanded={mediaDropdownOpen}
                       aria-haspopup="listbox"
@@ -3253,35 +3131,39 @@ export default function App() {
                       </svg>
                     </button>
 
-                    <PortalDropdownMenu
-                      isOpen={mediaDropdownOpen}
-                      triggerRef={mediaDropdownRef}
-                      onClose={() => setMediaDropdownOpen(false)}
-                      id="search-dropdown-menu"
-                      ariaLabel="Media selection dropdown"
-                      className="bg-white rounded-xl shadow-lg border border-gray-200 py-1.5"
-                    >
-                      {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
-                        <button
-                          key={type}
-                          className={`search-dropdown-item w-full px-3.5 py-2.5 text-left text-xs sm:text-sm md:text-[15px] font-medium transition-colors flex items-center justify-between cursor-pointer ${
-                            selectedMediaType === type ? 'text-[#e2242b] font-semibold bg-red-50/60' : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
-                          }`}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMediaType(type);
-                            setMediaDropdownOpen(false);
-                          }}
-                        >
-                          <span className="truncate">{type}</span>
-                          {selectedMediaType === type && (
-                            <svg className="w-4 h-4 text-[#e2242b] shrink-0 ml-1.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
-                            </svg>
-                          )}
-                        </button>
-                      ))}
-                    </PortalDropdownMenu>
+                    {mediaDropdownOpen && (
+                      <div
+                        id="search-dropdown-menu"
+                        role="listbox"
+                        aria-label="Media selection dropdown"
+                        className="absolute left-0 top-full mt-1.5 w-full overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50"
+                      >
+                        {(['Photos', 'Videos', 'Banners', 'Templates'] as const).map((type) => (
+                          <button
+                            key={type}
+                            role="option"
+                            aria-selected={selectedMediaType === type}
+                            className={`search-dropdown-item w-full px-2.5 xs:px-3 md:px-3.5 py-1.5 sm:py-2 text-left text-xs xs:text-[13px] sm:text-sm md:text-[14.5px] font-medium transition-colors flex items-center justify-between gap-1 cursor-pointer ${
+                              selectedMediaType === type
+                                ? 'text-[#e2242b] font-semibold bg-red-50/60'
+                                : 'text-gray-800 hover:bg-gray-50 hover:text-[#e2242b]'
+                            }`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMediaType(type);
+                              setMediaDropdownOpen(false);
+                            }}
+                          >
+                            <span className="truncate">{type}</span>
+                            {selectedMediaType === type && (
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e2242b] shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column: Search Bar & Trending Row */}
@@ -3720,7 +3602,7 @@ export default function App() {
               {/* MOBILE VIEW: Exactly 2 rows, 6 terms per row, compact size, no wrapping into 3 or 4 rows */}
               <div className="flex sm:hidden flex-col w-full gap-1.5 mt-2">
                 {/* ROW 1: North Indian | Cake | Pizza | Coffee | Waffles | Beverages */}
-                <div className="w-full flex items-center justify-start min-[390px]:justify-between gap-1 overflow-x-auto scrollbar-none flex-nowrap py-0.5 touch-pan-x">
+                <div className="w-full flex items-center justify-start min-[390px]:justify-between gap-1 overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex-nowrap py-0.5 touch-pan-x">
                   {SEARCH_TERMS_ROW_1.map((term) => (
                     <button
                       key={term}
@@ -3738,7 +3620,7 @@ export default function App() {
                 </div>
 
                 {/* ROW 2: Kebab | Sandwich | Street Food | Fast Food | Biryani | Burger */}
-                <div className="w-full flex items-center justify-start min-[390px]:justify-between gap-1 overflow-x-auto scrollbar-none flex-nowrap py-0.5 touch-pan-x">
+                <div className="w-full flex items-center justify-start min-[390px]:justify-between gap-1 overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex-nowrap py-0.5 touch-pan-x">
                   {SEARCH_TERMS_ROW_2.map((term) => (
                     <button
                       key={term}
@@ -3766,7 +3648,7 @@ export default function App() {
     <footer className="w-full bg-[#0d0d0f] border-t border-neutral-800 mt-12 py-10 px-4 sm:px-8 lg:px-12 text-white">
       <div className="w-full mx-auto">
         {/* Three Rectangular Content Boxes */}
-        <div className="flex flex-row md:grid md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 overflow-x-auto md:overflow-x-visible pb-3 md:pb-0 scrollbar-none snap-x -mx-3 px-3 sm:mx-0 sm:px-0">
+        <div className="flex flex-row md:grid md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 overflow-x-auto overflow-y-hidden md:overflow-x-visible pb-3 md:pb-0 no-scrollbar scrollbar-none snap-x -mx-3 px-3 sm:mx-0 sm:px-0">
           {/* BOX 1: Brand & Contact Info */}
           <div className="bg-[#121214] border border-neutral-800 rounded-xl p-4 sm:p-5 md:p-6 lg:p-7 flex flex-col justify-between shadow-xs h-full min-h-[210px] md:min-h-[230px] lg:min-h-[240px] w-[260px] xs:w-[280px] sm:w-[300px] md:w-auto shrink-0 md:shrink snap-start">
             <div>
