@@ -4,6 +4,16 @@
  */
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { PackageCheckoutModal } from './components/PackageCheckoutModal';
+import { MyPurchasesModal } from './components/MyPurchasesModal';
+import {
+  CustomerProfile,
+  SelectedPackage,
+  OrderRecord,
+  getSavedCustomer,
+  saveCustomer,
+  clearSavedCustomer
+} from './services/checkoutService';
 
 // Data types
 interface Dish {
@@ -264,10 +274,17 @@ const FAQ_ITEMS: FaqItem[] = [
 ];
 
 // FOODBLIZ PACKAGES DATA
+interface PackageFeature {
+  text: string;
+  type: 'images' | 'banners' | 'video';
+  disabled?: boolean;
+}
+
 interface PackagePlan {
   id: string;
   name: string;
-  items: string;
+  badge?: string;
+  features: PackageFeature[];
   price: string;
   period?: string;
   cta: string;
@@ -276,26 +293,39 @@ interface PackagePlan {
 
 const STANDARD_PACKAGES: PackagePlan[] = [
   {
-    id: 'starter',
-    name: 'STARTER',
-    items: '5 Food Images',
-    price: '999',
+    id: 'essential',
+    name: 'Essential',
+    features: [
+      { text: '15 Images', type: 'images' },
+      { text: 'No Banners', type: 'banners', disabled: true },
+      { text: 'No Videos', type: 'video', disabled: true }
+    ],
+    price: '199',
     cta: 'Buy Now',
     isPopular: false
   },
   {
-    id: 'growth',
-    name: 'GROWTH',
-    items: '10 Food Images',
-    price: '1,999',
+    id: 'signature',
+    name: 'Signature',
+    badge: 'Most Popular',
+    features: [
+      { text: '25 Images', type: 'images' },
+      { text: '2 Banners', type: 'banners' },
+      { text: '1 Video', type: 'video' }
+    ],
+    price: '299',
     cta: 'Buy Now',
     isPopular: true
   },
   {
-    id: 'pro',
-    name: 'PRO',
-    items: '25 Food Images',
-    price: '3,999',
+    id: 'elite',
+    name: 'Elite',
+    features: [
+      { text: '40 Images', type: 'images' },
+      { text: '4 Banners', type: 'banners' },
+      { text: '2 Videos', type: 'video' }
+    ],
+    price: '499',
     cta: 'Buy Now',
     isPopular: false
   }
@@ -303,28 +333,41 @@ const STANDARD_PACKAGES: PackagePlan[] = [
 
 const SUBSCRIPTION_PACKAGES: PackagePlan[] = [
   {
-    id: 'monthly-starter',
-    name: 'MONTHLY STARTER',
-    items: '10 Images / Month',
-    price: '1,499',
+    id: 'sub-essential',
+    name: 'Essential',
+    features: [
+      { text: '15 Images / Month', type: 'images' },
+      { text: 'No Banners / Month', type: 'banners', disabled: true },
+      { text: 'No Videos / Month', type: 'video', disabled: true }
+    ],
+    price: '399',
     period: '/ month',
     cta: 'Subscribe Now',
     isPopular: false
   },
   {
-    id: 'monthly-growth',
-    name: 'MONTHLY GROWTH',
-    items: '25 Images / Month',
-    price: '2,999',
+    id: 'sub-signature',
+    name: 'Signature',
+    badge: 'Best Value',
+    features: [
+      { text: '25 Images / Month', type: 'images' },
+      { text: '2 Banners / Month', type: 'banners' },
+      { text: '1 Video / Month', type: 'video' }
+    ],
+    price: '699',
     period: '/ month',
     cta: 'Subscribe Now',
     isPopular: true
   },
   {
-    id: 'monthly-pro',
-    name: 'MONTHLY PRO',
-    items: '50 Images / Month',
-    price: '4,999',
+    id: 'sub-elite',
+    name: 'Elite',
+    features: [
+      { text: '40 Images / Month', type: 'images' },
+      { text: '4 Banners / Month', type: 'banners' },
+      { text: '2 Videos / Month', type: 'video' }
+    ],
+    price: '999',
     period: '/ month',
     cta: 'Subscribe Now',
     isPopular: false
@@ -846,6 +889,12 @@ export default function App() {
     fullName: ''
   });
 
+  // Authenticated Customer Profile & Purchase Flow State
+  const [authCustomer, setAuthCustomer] = useState<CustomerProfile | null>(() => getSavedCustomer());
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [activeCheckoutPackage, setActiveCheckoutPackage] = useState<SelectedPackage | null>(null);
+  const [myPurchasesModalOpen, setMyPurchasesModalOpen] = useState(false);
+
   // Modal Dish Info
   const [selectedModalDish, setSelectedModalDish] = useState<Dish | null>(null);
 
@@ -981,7 +1030,13 @@ export default function App() {
 
   // Reusable modal background scroll lock across all modals and slide-over drawers
   const isAnyModalOpen =
-    loginModalOpen || faqModalOpen || contactModalOpen || !!selectedModalDish || cartDrawerOpen;
+    loginModalOpen ||
+    faqModalOpen ||
+    contactModalOpen ||
+    !!selectedModalDish ||
+    cartDrawerOpen ||
+    checkoutModalOpen ||
+    myPurchasesModalOpen;
   useModalScrollLock(isAnyModalOpen);
 
   // Cuisine scroll sync
@@ -1066,20 +1121,55 @@ export default function App() {
       showToast('Please enter both identifier and password.');
       return;
     }
+    const customerName = loginForm.fullName.trim() || loginForm.identifier.split('@')[0];
+    const customerEmail = loginForm.identifier.includes('@')
+      ? loginForm.identifier.trim().toLowerCase()
+      : `${loginForm.identifier.trim().toLowerCase()}@foodbliz.com`;
+
+    const authenticatedUser: CustomerProfile = {
+      fullName: customerName,
+      email: customerEmail,
+      mobile: '+91 9876543210',
+      isLoggedIn: true
+    };
+
+    saveCustomer(authenticatedUser);
+    setAuthCustomer(authenticatedUser);
+
     if (isSignUpMode) {
-      showToast(`Welcome to Foodbliz, ${loginForm.fullName || loginForm.identifier}! Account created.`);
+      showToast(`Welcome to Foodbliz, ${customerName}! Account created.`);
     } else {
-      showToast(`Welcome back, ${loginForm.identifier}! Logged in successfully.`);
+      showToast(`Welcome back, ${customerName}! Logged in successfully.`);
     }
     setLoginModalOpen(false);
     setLoginForm({ identifier: '', password: '', fullName: '' });
   };
 
-  const handlePackageSelect = (pkgName: string, price: string, type: 'standard' | 'subscription') => {
-    if (type === 'standard') {
-      showToast(`${pkgName} package (₹${price}) selected! Ready for booking.`);
+  const handleLogout = () => {
+    clearSavedCustomer();
+    setAuthCustomer(null);
+    showToast('Logged out of Foodbliz account.');
+  };
+
+  const handlePackageSelect = (pkgName: string, _price: string, type: 'standard' | 'subscription') => {
+    // Read authoritative configured package from constants
+    const packagePool = type === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES;
+    const targetPlan = packagePool.find((p) => p.name.toLowerCase() === pkgName.toLowerCase());
+
+    if (targetPlan) {
+      const checkoutPkg: SelectedPackage = {
+        id: targetPlan.id,
+        name: targetPlan.name,
+        type,
+        price: Number(targetPlan.price),
+        period: targetPlan.period,
+        features: targetPlan.features,
+        badge: targetPlan.badge
+      };
+      setActiveCheckoutPackage(checkoutPkg);
+      setCheckoutModalOpen(true);
     } else {
-      showToast(`${pkgName} plan (₹${price}/month) selected! Contacting plans team.`);
+      showToast(`Selected ${pkgName} package.`);
     }
   };
 
@@ -1375,26 +1465,43 @@ export default function App() {
                 </span>
               )}
             </button>
-            <a
-              className="flex items-center gap-1 px-2.5 xs:px-3 py-1.5 rounded-full bg-white text-black font-extrabold text-[10.5px] xs:text-[11.5px] tracking-wide uppercase hover:bg-gray-100 transition-colors shadow-sm shrink-0 cursor-pointer"
-              href="#login"
-              id="header-login-btn-mobile"
-              onClick={(e) => {
-                e.preventDefault();
-                setLoginModalOpen(true);
-              }}
-            >
-              <span className="leading-none">LOG IN</span>
-              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-              </svg>
-            </a>
+            {authCustomer && authCustomer.isLoggedIn ? (
+              <button
+                type="button"
+                className="flex items-center gap-1 px-2.5 xs:px-3 py-1.5 rounded-full bg-[#E50914] text-white font-extrabold text-[10px] xs:text-[11px] tracking-wide uppercase hover:bg-[#c81e24] transition-colors shadow-sm shrink-0 cursor-pointer"
+                id="header-profile-btn-mobile"
+                onClick={() => setMyPurchasesModalOpen(true)}
+                title={`Account: ${authCustomer.fullName}`}
+              >
+                <span className="leading-none max-w-[55px] truncate">
+                  {authCustomer.fullName.split(' ')[0] || 'Account'}
+                </span>
+                <svg className="w-3 h-3 fill-current shrink-0" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </button>
+            ) : (
+              <a
+                className="flex items-center gap-1 px-2.5 xs:px-3 py-1.5 rounded-full bg-white text-black font-extrabold text-[10.5px] xs:text-[11.5px] tracking-wide uppercase hover:bg-gray-100 transition-colors shadow-sm shrink-0 cursor-pointer"
+                href="#login"
+                id="header-login-btn-mobile"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLoginModalOpen(true);
+                }}
+              >
+                <span className="leading-none">LOG IN</span>
+                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                </svg>
+              </a>
+            )}
           </div>
         </div>
 
         {/* DESKTOP / TABLET HEADER (hidden md:flex) - Exactly preserved */}
         <div className="hidden md:flex relative w-full px-4 sm:px-8 lg:px-12 py-3 sm:py-3.5 flex-col items-center justify-center bg-black min-h-[96px]">
-          {/* Right-side controls (Cart & Log In) */}
+          {/* Right-side controls (Cart & Log In / My Purchases) */}
           <div className="absolute right-4 sm:right-6 lg:right-10 top-1/2 -translate-y-1/2 flex items-center gap-3 z-10 shrink-0">
             <button
               aria-label="View Cart"
@@ -1412,19 +1519,44 @@ export default function App() {
                 </span>
               )}
             </button>
-            <a
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-black font-extrabold text-[13px] tracking-wide uppercase hover:bg-gray-100 transition-colors shadow-sm shrink-0 cursor-pointer"
-              href="#login"
-              onClick={(e) => {
-                e.preventDefault();
-                setLoginModalOpen(true);
-              }}
-            >
-              <span className="leading-none">LOG IN</span>
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-              </svg>
-            </a>
+            {authCustomer && authCustomer.isLoggedIn ? (
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black font-extrabold text-[12.5px] tracking-wide uppercase hover:bg-gray-100 transition-colors shadow-sm shrink-0 cursor-pointer"
+                  onClick={() => setMyPurchasesModalOpen(true)}
+                  title="View purchases and subscriptions"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="leading-none">{authCustomer.fullName.split(' ')[0] || 'My Purchases'}</span>
+                  <svg className="w-3 h-3 fill-current text-gray-700 shrink-0" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-[11px] text-gray-400 hover:text-white font-bold transition-colors cursor-pointer"
+                  title="Log out of account"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <a
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-black font-extrabold text-[13px] tracking-wide uppercase hover:bg-gray-100 transition-colors shadow-sm shrink-0 cursor-pointer"
+                href="#login"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLoginModalOpen(true);
+                }}
+              >
+                <span className="leading-none">LOG IN</span>
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                </svg>
+              </a>
+            )}
           </div>
 
           {/* Logo & Desktop Nav links */}
@@ -1562,7 +1694,7 @@ export default function App() {
               Contact Us
             </button>
             <button
-              className="text-white hover:text-red-500 py-1.5 font-semibold text-sm transition-colors block w-full text-center cursor-pointer"
+              className="text-white hover:text-red-500 py-1.5 font-semibold text-sm transition-colors block w-full border-b border-gray-800/60 text-center cursor-pointer"
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -1570,6 +1702,24 @@ export default function App() {
               }}
             >
               Faqs
+            </button>
+            <button
+              className="text-[#E50914] hover:text-white py-1.5 font-bold text-sm transition-colors block w-full text-center cursor-pointer flex items-center justify-center gap-1.5"
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (authCustomer?.isLoggedIn) {
+                  setMyPurchasesModalOpen(true);
+                } else {
+                  setLoginModalOpen(true);
+                }
+              }}
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z" />
+                <path d="M7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z" />
+              </svg>
+              <span>{authCustomer?.isLoggedIn ? 'My Purchases & Downloads' : 'My Purchases (Login)'}</span>
             </button>
           </div>
         )}
@@ -1580,126 +1730,392 @@ export default function App() {
           {/* ================================================== */}
           {/* 1. TOP PRICING SECTION                             */}
           {/* ================================================== */}
-          <section
-            className="relative w-full overflow-hidden bg-cover bg-center text-white pt-8 sm:pt-12 md:pt-14 pb-10 sm:pb-12 md:pb-14 px-4 sm:px-8 lg:px-12 shadow-md border-b border-neutral-800"
-            style={{
-              backgroundImage:
-                "url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1800&q=80')"
-            }}
-          >
-            {/* Atmospheric dark sky overlay matching reference */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#060c18]/90 via-[#0b172a]/85 to-[#050811]/95 pointer-events-none"></div>
-
-            <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto flex flex-col items-center text-center">
-              {/* Heading */}
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-[34px] font-black text-white tracking-tight leading-tight max-w-3xl px-2">
-                Foodbliz Packages: Professional Content That Makes Your Food Stand Out
-              </h1>
-
-              {/* Short supporting line */}
-              <p className="text-xs sm:text-sm md:text-base text-gray-300 font-medium mt-2.5 max-w-2xl leading-relaxed px-2">
-                Professional food photography, appetizing menu styling, and high-impact culinary content for your brand.
+          <section className="relative w-full bg-white pt-8 sm:pt-12 md:pt-14 pb-12 sm:pb-16 px-2 min-[360px]:px-3 sm:px-6 lg:px-8 border-b border-gray-100 overflow-hidden">
+            <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center text-center">
+              {/* Clean header subtitle only matching reference (No logo, No trademark, No subheadings) */}
+              <p className="text-gray-900 text-xs min-[360px]:text-sm sm:text-base md:text-[18px] font-semibold text-center max-w-2xl mx-auto px-2 leading-relaxed">
+                Premium food visuals for restaurants, cafés, and cloud kitchens.
               </p>
 
-              {/* Two-option selector structure: Standard vs Subscription */}
-              <div className="flex justify-center mt-6 mb-7 sm:mb-8 md:mb-9">
-                <div className="inline-flex p-1 bg-black/85 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
+              {/* Standard / Subscription capsule toggle — strictly ONE horizontal row on mobile, tablet & desktop */}
+              <div className="flex justify-center mt-5 sm:mt-7 md:mt-8 mb-6 sm:mb-8 md:mb-10 w-full px-1">
+                <div className="inline-flex p-0.5 sm:p-1 bg-white rounded-full border border-gray-300 shadow-xs max-w-full flex-nowrap shrink-0">
                   <button
                     type="button"
                     onClick={() => setPackagesTab('standard')}
-                    className={`px-5 sm:px-7 py-2 rounded-md text-xs sm:text-sm font-bold tracking-wide transition-all cursor-pointer focus:outline-none ${
+                    className={`px-2.5 min-[360px]:px-3.5 min-[400px]:px-5 sm:px-7 md:px-8 py-1.5 min-[360px]:py-2 sm:py-2.5 rounded-full text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11.5px] sm:text-xs md:text-sm font-bold tracking-tight transition-all cursor-pointer focus:outline-none whitespace-nowrap ${
                       packagesTab === 'standard'
-                        ? 'bg-white text-black shadow-sm'
-                        : 'text-gray-300 hover:text-white'
+                        ? 'bg-[#E50914] text-white shadow-sm'
+                        : 'text-gray-900 hover:text-black bg-transparent'
                     }`}
                   >
-                    Standard
+                    Standard (One-Time Purchase)
                   </button>
                   <button
                     type="button"
                     onClick={() => setPackagesTab('subscription')}
-                    className={`px-5 sm:px-7 py-2 rounded-md text-xs sm:text-sm font-bold tracking-wide transition-all cursor-pointer focus:outline-none ${
+                    className={`px-2.5 min-[360px]:px-3.5 min-[400px]:px-5 sm:px-7 md:px-8 py-1.5 min-[360px]:py-2 sm:py-2.5 rounded-full text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11.5px] sm:text-xs md:text-sm font-bold tracking-tight transition-all cursor-pointer focus:outline-none whitespace-nowrap ${
                       packagesTab === 'subscription'
-                        ? 'bg-white text-black shadow-sm'
-                        : 'text-gray-300 hover:text-white'
+                        ? 'bg-[#E50914] text-white shadow-sm'
+                        : 'text-gray-900 hover:text-black bg-transparent'
                     }`}
                   >
-                    Subscription
+                    Subscription (Monthly)
                   </button>
                 </div>
               </div>
 
-              {/* THREE PRICING CARDS - STRICTLY IN ONE HORIZONTAL ROW ACROSS DESKTOP, TABLET, MOBILE */}
-              <div className="w-full overflow-x-auto overflow-y-hidden no-scrollbar py-1">
-                <div className="flex flex-row items-stretch justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8 min-w-full">
-                  {(packagesTab === 'standard' ? STANDARD_PACKAGES : SUBSCRIPTION_PACKAGES).map((pkg) => (
-                    <div
-                      key={pkg.id}
-                      className={`flex-1 min-w-[96px] max-w-[340px] md:max-w-[370px] lg:max-w-[390px] bg-white rounded-2xl sm:rounded-3xl shadow-xl flex flex-col justify-between items-center text-center p-3 sm:p-5 md:p-6 lg:p-7 transition-all duration-200 ${
-                        pkg.isPopular
-                          ? 'border-2 border-[#E50914] shadow-2xl relative'
-                          : 'border border-gray-100 hover:shadow-2xl'
-                      }`}
-                    >
-                      {/* Popular indicator */}
-                      {pkg.isPopular && (
-                        <div className="mb-0.5 sm:mb-1">
-                          <span className="text-[7.5px] sm:text-[9.5px] font-black uppercase tracking-wider text-white bg-[#E50914] px-1.5 sm:px-2.5 py-0.5 rounded-full inline-block shadow-2xs whitespace-nowrap">
-                            {packagesTab === 'standard' ? 'Most Popular' : 'Best Value'}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Package Name & Image count */}
-                      <div className="w-full">
-                        <p
-                          className={`text-[8.5px] sm:text-[10px] md:text-xs font-black tracking-widest uppercase ${
-                            pkg.isPopular ? 'text-[#E50914]' : 'text-gray-400'
-                          }`}
-                        >
-                          {pkg.name}
-                        </p>
-                        <h3 className="text-[11px] sm:text-base md:text-lg font-black text-gray-900 leading-tight mt-0.5 sm:mt-1">
-                          {pkg.items}
-                        </h3>
-                      </div>
-
-                      {/* Big Price */}
-                      <div className="my-2 sm:my-4 md:my-5 flex flex-col items-center">
-                        <div className="flex items-baseline justify-center">
-                          <span className="text-xs sm:text-lg md:text-2xl font-black text-gray-900 mr-0.5">₹</span>
-                          <span className="text-lg sm:text-3xl md:text-4xl lg:text-[42px] font-black text-gray-900 tracking-tight leading-none">
-                            {pkg.price}
-                          </span>
-                        </div>
-                        {pkg.period && (
-                          <span className="text-[8px] sm:text-xs text-gray-500 font-semibold mt-0.5">
-                            {pkg.period}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Small CTA Button */}
-                      <button
-                        type="button"
-                        onClick={() => handlePackageSelect(pkg.name, pkg.price, packagesTab)}
-                        className={`w-full py-1.5 sm:py-2.5 px-1 sm:px-4 rounded-full text-[9px] sm:text-xs md:text-sm font-bold tracking-wide transition-all cursor-pointer focus:outline-none ${
+              {/* TWO SEPARATE DATA-DRIVEN VIEWS WITH INDEPENDENT CARDS & BENEFITS */}
+              {packagesTab === 'standard' ? (
+                <div key="standard-pricing-view" className="w-full flex flex-col items-center">
+                  {/* THREE INDIVIDUAL CARDS IN ONE HORIZONTAL ROW (Never stacked on mobile) */}
+                  <div className="w-full grid grid-cols-3 gap-1.5 min-[360px]:gap-2 sm:gap-4 md:gap-6 lg:gap-7 items-stretch max-w-5xl mx-auto">
+                    {STANDARD_PACKAGES.map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        className={`rounded-xl sm:rounded-2xl md:rounded-3xl p-1.5 min-[360px]:p-2 min-[400px]:p-2.5 sm:p-5 md:p-6 lg:p-7 flex flex-col justify-between transition-all duration-200 ${
                           pkg.isPopular
-                            ? 'bg-[#E50914] hover:bg-[#c81e24] text-white shadow-sm'
-                            : 'border border-gray-300 hover:border-black text-gray-800 hover:bg-gray-50'
+                            ? 'border-2 border-[#E50914] bg-[#FFF9F9] shadow-[0_4px_24px_rgba(229,9,20,0.12)] relative'
+                            : 'border border-gray-200 bg-white shadow-xs hover:shadow-md'
                         }`}
                       >
-                        {pkg.cta}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                        {/* Top: Compact Label with Star (No background box) + Package Title */}
+                        <div>
+                          <div className="h-3.5 min-[360px]:h-4 sm:h-5 md:h-6 flex items-center justify-center mb-0.5 sm:mb-1">
+                            {pkg.badge ? (
+                              <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[7px] min-[360px]:text-[8px] min-[400px]:text-[9px] sm:text-xs md:text-sm font-bold text-[#E50914] whitespace-nowrap">
+                                <svg className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 fill-current shrink-0" viewBox="0 0 24 24">
+                                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                </svg>
+                                {pkg.badge}
+                              </span>
+                            ) : (
+                              <span className="h-3 sm:h-4 block" aria-hidden="true"></span>
+                            )}
+                          </div>
 
-              {/* Taxes Notice */}
-              <p className="text-center text-[10px] sm:text-xs text-gray-300/90 font-medium mt-6 sm:mt-8">
-                Prices shown in Indian Rupees (INR). Taxes may apply.
-              </p>
+                          <h3 className="text-[11px] min-[360px]:text-xs min-[400px]:text-sm sm:text-lg md:text-xl lg:text-2xl font-black text-gray-900 text-center tracking-tight mb-2 sm:mb-4 md:mb-5">
+                            {pkg.name}
+                          </h3>
+                        </div>
+
+                        {/* Middle: Feature rows on separate horizontal rows */}
+                        <div className="flex flex-col items-center justify-center space-y-1.5 min-[360px]:space-y-2 min-[400px]:space-y-2.5 sm:space-y-3.5 my-auto py-1 sm:py-2 w-full">
+                          {pkg.features.map((feat, fIdx) => (
+                            <div key={fIdx} className="flex items-center justify-center gap-1 min-[360px]:gap-1.5 sm:gap-2.5 md:gap-3 w-full">
+                              {/* Feature Icon */}
+                              <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 relative flex items-center justify-center">
+                                {feat.type === 'images' && (
+                                  <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                                    <polyline points="4 15 9 10 14 15 17 12 20 15" />
+                                  </svg>
+                                )}
+                                {feat.type === 'banners' && (
+                                  <>
+                                    <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M3 6h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6z" />
+                                      <path d="M7 11h10" />
+                                    </svg>
+                                    {feat.disabled && (
+                                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 bg-[#E50914] rounded-full flex items-center justify-center text-white ring-1 ring-white">
+                                        <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 fill-none stroke-white stroke-[3]" viewBox="0 0 24 24">
+                                          <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {feat.type === 'video' && (
+                                  <>
+                                    <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="3" y="5" width="18" height="14" rx="3" />
+                                      <polygon points="10 9 15 12 10 15 10 9" fill="#E50914" />
+                                    </svg>
+                                    {feat.disabled && (
+                                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 bg-[#E50914] rounded-full flex items-center justify-center text-white ring-1 ring-white">
+                                        <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 fill-none stroke-white stroke-[3]" viewBox="0 0 24 24">
+                                          <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Feature Text */}
+                              <span className="text-[7px] min-[360px]:text-[8px] min-[400px]:text-[9px] sm:text-xs md:text-sm lg:text-[14px] font-bold text-gray-900 whitespace-nowrap leading-none">
+                                {feat.text}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Bottom: Price and CTA button */}
+                        <div className="mt-3 sm:mt-6 md:mt-7 pt-1 sm:pt-2">
+                          <div className="text-center mb-2 sm:mb-4 md:mb-5">
+                            <div className="flex items-baseline justify-center">
+                              <span className={`text-xs min-[360px]:text-sm min-[400px]:text-base sm:text-2xl md:text-3xl lg:text-[38px] font-black tracking-tight leading-none ${pkg.isPopular ? 'text-[#E50914]' : 'text-gray-900'}`}>
+                                ₹{pkg.price}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePackageSelect(pkg.name, pkg.price, 'standard')}
+                            className={`w-full py-1.5 min-[360px]:py-2 sm:py-2.5 md:py-3 px-0.5 min-[360px]:px-1 sm:px-3 md:px-5 rounded-full font-bold text-[8px] min-[360px]:text-[9px] min-[400px]:text-[10px] sm:text-xs md:text-sm lg:text-base tracking-tight transition-all cursor-pointer focus:outline-none whitespace-nowrap ${
+                              pkg.isPopular
+                                ? 'bg-[#E50914] hover:bg-[#c81e24] text-white shadow-sm hover:shadow-md'
+                                : 'bg-white hover:bg-gray-50 border border-gray-300 hover:border-black text-gray-900'
+                            }`}
+                          >
+                            {pkg.cta}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* FOUR STANDARD BENEFITS (Separately rendered under Standard view) */}
+                  <div className="w-full max-w-5xl mx-auto mt-6 sm:mt-10 md:mt-12 pt-6 sm:pt-8 md:pt-10 border-t border-gray-200">
+                    <div className="grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 sm:gap-4 md:gap-0">
+                      {/* Benefit 1: Instant Downloads */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914] fill-current" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Instant Downloads
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 2: Full Commercial Rights */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Full Commercial Rights
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 3: Multi-Platform Use */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18.178 8c5.096 0 5.096 8 0 8-2.688 0-4.482-2.148-6.178-4-1.696-1.852-3.49-4-6.178-4-5.096 0-5.096 8 0 8 2.688 0 4.482-2.148 6.178-4 1.696-1.852 3.49-4 6.178-4z" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Multi-Platform Use
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 4: Fresh & Curated Content */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Fresh & Curated Content
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div key="subscription-pricing-view" className="w-full flex flex-col items-center">
+                  {/* THREE INDIVIDUAL CARDS IN ONE HORIZONTAL ROW (Never stacked on mobile) */}
+                  <div className="w-full grid grid-cols-3 gap-1.5 min-[360px]:gap-2 sm:gap-4 md:gap-6 lg:gap-7 items-stretch max-w-5xl mx-auto">
+                    {SUBSCRIPTION_PACKAGES.map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        className={`rounded-xl sm:rounded-2xl md:rounded-3xl p-1.5 min-[360px]:p-2 min-[400px]:p-2.5 sm:p-5 md:p-6 lg:p-7 flex flex-col justify-between transition-all duration-200 ${
+                          pkg.isPopular
+                            ? 'border-2 border-[#E50914] bg-[#FFF9F9] shadow-[0_4px_24px_rgba(229,9,20,0.12)] relative'
+                            : 'border border-gray-200 bg-white shadow-xs hover:shadow-md'
+                        }`}
+                      >
+                        {/* Top: Compact Label with Star (No background box) + Package Title */}
+                        <div>
+                          <div className="h-3.5 min-[360px]:h-4 sm:h-5 md:h-6 flex items-center justify-center mb-0.5 sm:mb-1">
+                            {pkg.badge ? (
+                              <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[7px] min-[360px]:text-[8px] min-[400px]:text-[9px] sm:text-xs md:text-sm font-bold text-[#E50914] whitespace-nowrap">
+                                <svg className="w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 fill-current shrink-0" viewBox="0 0 24 24">
+                                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                </svg>
+                                {pkg.badge}
+                              </span>
+                            ) : (
+                              <span className="h-3 sm:h-4 block" aria-hidden="true"></span>
+                            )}
+                          </div>
+
+                          <h3 className="text-[11px] min-[360px]:text-xs min-[400px]:text-sm sm:text-lg md:text-xl lg:text-2xl font-black text-gray-900 text-center tracking-tight mb-2 sm:mb-4 md:mb-5">
+                            {pkg.name}
+                          </h3>
+                        </div>
+
+                        {/* Middle: Feature rows on separate horizontal rows */}
+                        <div className="flex flex-col items-center justify-center space-y-1.5 min-[360px]:space-y-2 min-[400px]:space-y-2.5 sm:space-y-3.5 my-auto py-1 sm:py-2 w-full">
+                          {pkg.features.map((feat, fIdx) => (
+                            <div key={fIdx} className="flex items-center justify-center gap-1 min-[360px]:gap-1.5 sm:gap-2.5 md:gap-3 w-full">
+                              {/* Feature Icon */}
+                              <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 relative flex items-center justify-center">
+                                {feat.type === 'images' && (
+                                  <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                                    <polyline points="4 15 9 10 14 15 17 12 20 15" />
+                                  </svg>
+                                )}
+                                {feat.type === 'banners' && (
+                                  <>
+                                    <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M3 6h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6z" />
+                                      <path d="M7 11h10" />
+                                    </svg>
+                                    {feat.disabled && (
+                                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 bg-[#E50914] rounded-full flex items-center justify-center text-white ring-1 ring-white">
+                                        <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 fill-none stroke-white stroke-[3]" viewBox="0 0 24 24">
+                                          <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {feat.type === 'video' && (
+                                  <>
+                                    <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="3" y="5" width="18" height="14" rx="3" />
+                                      <polygon points="10 9 15 12 10 15 10 9" fill="#E50914" />
+                                    </svg>
+                                    {feat.disabled && (
+                                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 min-[360px]:w-2.5 min-[360px]:h-2.5 sm:w-3 sm:h-3 bg-[#E50914] rounded-full flex items-center justify-center text-white ring-1 ring-white">
+                                        <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 fill-none stroke-white stroke-[3]" viewBox="0 0 24 24">
+                                          <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Feature Text */}
+                              <span className="text-[7px] min-[360px]:text-[8px] min-[400px]:text-[9px] sm:text-xs md:text-sm lg:text-[14px] font-bold text-gray-900 whitespace-nowrap leading-none">
+                                {feat.text}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Bottom: Price and CTA button */}
+                        <div className="mt-3 sm:mt-6 md:mt-7 pt-1 sm:pt-2">
+                          <div className="text-center mb-2 sm:mb-4 md:mb-5">
+                            <div className="flex items-baseline justify-center">
+                              <span className={`text-xs min-[360px]:text-sm min-[400px]:text-base sm:text-2xl md:text-3xl lg:text-[38px] font-black tracking-tight leading-none ${pkg.isPopular ? 'text-[#E50914]' : 'text-gray-900'}`}>
+                                ₹{pkg.price}
+                              </span>
+                              {pkg.period && (
+                                <span className="text-[6px] min-[360px]:text-[7px] min-[400px]:text-[8px] sm:text-xs md:text-sm font-semibold text-gray-600 ml-0.5">
+                                  {pkg.period}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePackageSelect(pkg.name, pkg.price, 'subscription')}
+                            className={`w-full py-1.5 min-[360px]:py-2 sm:py-2.5 md:py-3 px-0.5 min-[360px]:px-1 sm:px-3 md:px-5 rounded-full font-bold text-[8px] min-[360px]:text-[9px] min-[400px]:text-[10px] sm:text-xs md:text-sm lg:text-base tracking-tight transition-all cursor-pointer focus:outline-none whitespace-nowrap ${
+                              pkg.isPopular
+                                ? 'bg-[#E50914] hover:bg-[#c81e24] text-white shadow-sm hover:shadow-md'
+                                : 'bg-white hover:bg-gray-50 border border-gray-300 hover:border-black text-gray-900'
+                            }`}
+                          >
+                            {pkg.cta}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* FOUR SUBSCRIPTION BENEFITS (Separately rendered under Subscription view) */}
+                  <div className="w-full max-w-5xl mx-auto mt-6 sm:mt-10 md:mt-12 pt-6 sm:pt-8 md:pt-10 border-t border-gray-200">
+                    <div className="grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 sm:gap-4 md:gap-0">
+                      {/* Benefit 1: Instant Downloads */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914] fill-current" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Instant Downloads
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 2: Full Commercial Rights */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Full Commercial Rights
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 3: Multi-Platform Use */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18.178 8c5.096 0 5.096 8 0 8-2.688 0-4.482-2.148-6.178-4-1.696-1.852-3.49-4-6.178-4-5.096 0-5.096 8 0 8 2.688 0 4.482-2.148 6.178-4 1.696-1.852 3.49-4 6.178-4z" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Multi-Platform Use
+                        </span>
+                      </div>
+
+                      <div className="hidden md:block w-[1px] h-6 sm:h-7 bg-gray-300 shrink-0"></div>
+
+                      {/* Benefit 4: Fresh & Curated Content */}
+                      <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-2.5 md:gap-3 justify-start md:justify-center flex-1 px-1 sm:px-2">
+                        <div className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0 flex items-center justify-center">
+                          <svg className="w-full h-full text-[#E50914]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                          </svg>
+                        </div>
+                        <span className="font-bold text-gray-900 text-[9px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-[13.5px] lg:text-[14.5px] whitespace-nowrap">
+                          Fresh & Curated Content
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -4538,6 +4954,41 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 5-STEP FUNCTIONAL PACKAGE PURCHASE & CHECKOUT MODAL */}
+      <PackageCheckoutModal
+        isOpen={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        selectedPackage={activeCheckoutPackage}
+        customer={authCustomer}
+        onLoginSuccess={(cust) => {
+          setAuthCustomer(cust);
+          showToast(`Signed in as ${cust.fullName}`);
+        }}
+        onOrderSuccess={(order) => {
+          showToast(`Order ${order.orderId} verified and activated!`);
+        }}
+        onOpenPurchases={() => setMyPurchasesModalOpen(true)}
+        onExploreFood={() => {
+          setCurrentRoute('home');
+          window.location.hash = '#dishes';
+          setTimeout(() => scrollToDishes(), 60);
+        }}
+      />
+
+      {/* MY PURCHASES & CONTENT DOWNLOADS MODAL */}
+      <MyPurchasesModal
+        isOpen={myPurchasesModalOpen}
+        onClose={() => setMyPurchasesModalOpen(false)}
+        customer={authCustomer}
+        onOpenCheckoutForPackage={() => {
+          setCurrentRoute('packages');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onDownloadAsset={(title, type) => {
+          showToast(`Downloading high-resolution ${type}: "${title}" (Full Commercial License Included)...`);
+        }}
+      />
 
       {/* TOAST CONFIRMATION */}
       {toastMessage && (
